@@ -1,0 +1,3023 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AWS Storage Decision Maker</title>
+    <style>
+        :root {
+            --primary-color: #232f3e;
+            --secondary-color: #ff9900;
+            --bg-color: #f4f6f9;
+            --card-bg: #ffffff;
+            --text-color: #16191f;
+            --success-color: #2da15f;
+            --accent-blue: #0073bb;
+            --border-color: #eaeded;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: var(--bg-color); color: var(--text-color); line-height: 1.6; padding: 20px; }
+        .container { max-width: 860px; margin: 0 auto; }
+
+        header {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 28px 20px;
+            border-radius: 8px;
+            margin-bottom: 24px;
+            text-align: center;
+            border-bottom: 5px solid var(--secondary-color);
+        }
+        header h1 { font-size: 22px; margin-bottom: 8px; }
+        header p { color: #aab7c4; font-size: 14px; max-width: 640px; margin: 0 auto; }
+
+        .info-box {
+            background: #e8f4fc;
+            border-left: 4px solid var(--accent-blue);
+            padding: 14px 16px;
+            border-radius: 6px;
+            font-size: 13px;
+            margin-bottom: 24px;
+        }
+
+        .company-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 22px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+        .company-card label { font-weight: 600; font-size: 14px; display: block; margin-bottom: 8px; }
+        .company-card input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 15px;
+        }
+        .company-card .hint { font-size: 12px; color: #545b64; margin-top: 6px; }
+
+        .quiz-card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 22px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+        .question-num {
+            font-weight: bold;
+            color: var(--secondary-color);
+            text-transform: uppercase;
+            font-size: 11px;
+            letter-spacing: 1px;
+            margin-bottom: 6px;
+        }
+        .question-dim {
+            display: inline-block;
+            background: #f0f1f2;
+            color: #545b64;
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 4px;
+            margin-bottom: 8px;
+        }
+        .question-text { font-size: 15px; font-weight: 600; margin-bottom: 14px; }
+
+        .options-container { display: flex; flex-direction: column; gap: 10px; }
+        .option-label {
+            display: flex; align-items: flex-start;
+            padding: 11px 14px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.2s, border-color 0.2s;
+            font-size: 14px;
+        }
+        .option-label:hover { background-color: #f8f9fa; border-color: #aab7c4; }
+        .option-label input { margin-top: 3px; margin-right: 11px; accent-color: var(--secondary-color); flex-shrink: 0; }
+
+        .btn-submit {
+            display: block; width: 100%;
+            background-color: var(--secondary-color);
+            color: white; border: none; padding: 15px;
+            font-size: 16px; font-weight: bold;
+            border-radius: 6px; cursor: pointer;
+            margin: 8px 0 24px;
+            box-shadow: 0 4px 10px rgba(255, 153, 0, 0.3);
+        }
+        .btn-submit:hover { background-color: #e08800; }
+
+        .main-action-group .btn-submit {
+            margin-bottom: 8px;
+        }
+        .main-action-group .btn-list-companies {
+            display: block;
+            width: 100%;
+            background: var(--card-bg);
+            color: var(--primary-color);
+            border: 2px solid transparent;
+            padding: 0 15px;
+            font-size: 15px;
+            font-weight: 600;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 0 0 0;
+            max-height: 0;
+            opacity: 0;
+            visibility: hidden;
+            overflow: hidden;
+            pointer-events: none;
+            transition:
+                opacity 0.2s ease,
+                max-height 0.25s ease,
+                margin 0.25s ease,
+                padding 0.25s ease,
+                border-color 0.2s ease,
+                background-color 0.2s,
+                color 0.2s;
+        }
+        .main-action-group .btn-list-companies.is-revealed {
+            max-height: 56px;
+            opacity: 1;
+            visibility: visible;
+            pointer-events: auto;
+            margin: 0 0 8px;
+            padding: 12px 15px;
+            border-color: var(--primary-color);
+        }
+        .btn-list-companies:hover {
+            background: var(--primary-color);
+            color: white;
+        }
+        .main-action-group {
+            margin-bottom: 16px;
+        }
+        .saved-empty {
+            text-align: center;
+            color: #545b64;
+            font-size: 14px;
+            padding: 24px 16px;
+        }
+        .sync-status {
+            font-size: 12px;
+            margin-top: 8px;
+            padding: 8px 10px;
+            border-radius: 4px;
+            line-height: 1.4;
+        }
+        .sync-status.ok { background: #e8f5e3; color: #1c5232; border: 1px solid #abdfc0; }
+        .sync-status.warn { background: #fff8e6; color: #7a5b00; border: 1px solid #f0d080; }
+        .sync-status code { font-size: 11px; }
+        .storage-toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+        .storage-toolbar button {
+            flex: 1 1 140px;
+            padding: 9px 12px;
+            font-size: 12px;
+            font-weight: 600;
+            border-radius: 6px;
+            cursor: pointer;
+            border: 1px solid var(--border-color);
+            background: var(--card-bg);
+            color: var(--primary-color);
+        }
+        .storage-toolbar button:hover {
+            background: #f0f1f2;
+            border-color: #aab7c4;
+        }
+        .storage-toolbar button.primary-action {
+            background: var(--accent-blue);
+            color: white;
+            border-color: var(--accent-blue);
+        }
+        .storage-toolbar button.primary-action:hover {
+            background: #005aaa;
+        }
+        #importBackupInput { display: none; }
+        .saved-item-date { font-size: 11px; color: #879596; margin-top: 4px; }
+        .by-credit {
+            text-align: right;
+            font-size: 11px;
+            color: #879596;
+            margin: 10px 0 24px;
+            letter-spacing: 0.5px;
+        }
+
+        .radar-section .radar-sub {
+            font-size: 13px;
+            color: #545b64;
+            margin-bottom: 16px;
+        }
+        .radar-wrap {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+        }
+        .radar-chart-box {
+            flex: 1 1 320px;
+            max-width: 420px;
+        }
+        #storageRadarChart {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+        .radar-legend {
+            flex: 0 1 200px;
+            font-size: 13px;
+        }
+        .radar-legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .radar-legend-swatch {
+            width: 28px;
+            height: 14px;
+            border-radius: 3px;
+            flex-shrink: 0;
+        }
+        .radar-legend-swatch.company {
+            background: rgba(9, 114, 211, 0.25);
+            border: 2px solid #0972d3;
+        }
+        .radar-legend-swatch.service {
+            background: rgba(255, 153, 0, 0.4);
+            border: 2px solid #232f3e;
+        }
+        .radar-axis-hint {
+            font-size: 11px;
+            color: #879596;
+            margin-top: 12px;
+            text-align: center;
+            width: 100%;
+        }
+        .btn-reset {
+            display: inline-block; background: transparent;
+            border: 1px solid #aab7c4; color: var(--text-color);
+            padding: 10px 18px; border-radius: 4px; cursor: pointer; font-size: 14px; margin-top: 12px;
+        }
+
+        #result-panel { display: none; margin-bottom: 30px; }
+
+        .profile-hero {
+            background: linear-gradient(135deg, #1a4d6e 0%, var(--primary-color) 100%);
+            color: white;
+            padding: 26px 24px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            border-bottom: 4px solid var(--accent-blue);
+        }
+        .profile-hero .label { font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: #7eb8da; margin-bottom: 6px; }
+        .profile-hero h2 { font-size: 22px; margin-bottom: 8px; }
+        .profile-hero p { color: #d5dbdb; font-size: 14px; }
+
+        .result-hero {
+            background: linear-gradient(135deg, var(--primary-color) 0%, #37475a 100%);
+            color: white;
+            padding: 28px 24px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-bottom: 4px solid var(--secondary-color);
+        }
+        .result-hero .label { font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: var(--secondary-color); margin-bottom: 6px; }
+        .result-hero h2 { font-size: 24px; margin-bottom: 10px; }
+        .result-hero .verdict { font-size: 17px; color: #fff; font-weight: 600; margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.2); }
+        .result-hero p { color: #d5dbdb; font-size: 15px; }
+
+        .result-section {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 16px;
+        }
+        .result-section h3 {
+            font-size: 15px; color: var(--primary-color);
+            margin-bottom: 10px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 8px;
+        }
+        .result-section ul { margin-left: 18px; font-size: 14px; }
+        .result-section li { margin-bottom: 6px; }
+
+        .trait-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+        .trait-pill {
+            background: #eef1f3; color: #232f3e;
+            font-size: 12px; padding: 5px 12px;
+            border-radius: 20px; border: 1px solid var(--border-color);
+        }
+
+        .alt-card {
+            display: flex; align-items: center; gap: 12px;
+            padding: 12px; background: #f8f9fa;
+            border-radius: 6px; margin-bottom: 8px; font-size: 14px;
+        }
+        .alt-rank {
+            background: var(--secondary-color); color: white;
+            width: 28px; height: 28px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: bold; font-size: 12px; flex-shrink: 0;
+        }
+        .match-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+        .match-tag {
+            background: #eaf6ed; color: #1c5232;
+            font-size: 12px; padding: 4px 10px;
+            border-radius: 20px; border: 1px solid #abdfc0;
+        }
+
+        .error-msg {
+            background: #fdf3f2; border-left: 4px solid #df3312;
+            padding: 12px 16px; border-radius: 6px;
+            margin-bottom: 16px; display: none; font-size: 14px;
+        }
+
+        .case-top-wrap {
+            width: 100%;
+            margin-bottom: 16px;
+        }
+        .case-top-wrap .hint {
+            font-size: 12px;
+            color: #545b64;
+            text-align: center;
+            margin-top: 8px;
+        }
+
+        .btn-case {
+            position: relative;
+            display: block;
+            width: 100%;
+            overflow: hidden;
+            background: linear-gradient(135deg, #0972d3 0%, #005aaa 50%, #0972d3 100%);
+            background-size: 200% 100%;
+            color: white;
+            border: none;
+            padding: 16px 20px;
+            font-size: 16px;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            letter-spacing: 0.3px;
+            animation: case-glow 2.4s ease-in-out infinite, case-bg-shift 4s ease infinite;
+        }
+        .btn-case:hover {
+            animation: case-glow-hover 1.6s ease-in-out infinite, case-bg-shift 3s ease infinite;
+        }
+        .btn-case:focus-visible {
+            outline: 2px solid #fff;
+            outline-offset: 2px;
+        }
+        .btn-case .btn-case-label {
+            position: relative;
+            z-index: 2;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        .btn-case .btn-case-icon {
+            display: inline-flex;
+            width: 10px;
+            height: 18px;
+            border: 2px solid rgba(255,255,255,0.9);
+            border-radius: 2px;
+            position: relative;
+            flex-shrink: 0;
+        }
+        .btn-case .btn-case-icon::after {
+            content: '';
+            position: absolute;
+            right: -5px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 3px;
+            height: 8px;
+            background: rgba(255,255,255,0.9);
+            border-radius: 0 1px 1px 0;
+        }
+        .btn-case .btn-case-icon .charge-fill {
+            position: absolute;
+            left: 2px;
+            bottom: 2px;
+            width: calc(100% - 4px);
+            height: 0%;
+            background: linear-gradient(180deg, #7ec8ff, #fff);
+            border-radius: 1px;
+            animation: case-battery-fill 2.4s ease-in-out infinite;
+        }
+
+        .btn-case::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 8px;
+            border: 2px solid rgba(255, 255, 255, 0.45);
+            animation: case-ripple 2.2s ease-out infinite;
+            pointer-events: none;
+            z-index: 0;
+        }
+        .btn-case::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -80%;
+            width: 50%;
+            height: 100%;
+            background: linear-gradient(
+                105deg,
+                transparent 0%,
+                rgba(255, 255, 255, 0.12) 40%,
+                rgba(255, 255, 255, 0.35) 50%,
+                rgba(255, 255, 255, 0.12) 60%,
+                transparent 100%
+            );
+            animation: case-charge-sweep 2.8s ease-in-out infinite;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        @keyframes case-glow {
+            0%, 100% {
+                box-shadow:
+                    0 0 0 0 rgba(9, 114, 211, 0.35),
+                    0 4px 16px rgba(9, 114, 211, 0.4);
+            }
+            50% {
+                box-shadow:
+                    0 0 24px 6px rgba(9, 114, 211, 0.55),
+                    0 0 48px 12px rgba(126, 200, 255, 0.25),
+                    0 4px 20px rgba(9, 114, 211, 0.5);
+            }
+        }
+        @keyframes case-glow-hover {
+            0%, 100% {
+                box-shadow:
+                    0 0 16px 4px rgba(9, 114, 211, 0.5),
+                    0 4px 18px rgba(9, 114, 211, 0.45);
+            }
+            50% {
+                box-shadow:
+                    0 0 32px 10px rgba(9, 114, 211, 0.65),
+                    0 0 56px 16px rgba(126, 200, 255, 0.3),
+                    0 4px 24px rgba(9, 114, 211, 0.55);
+            }
+        }
+        @keyframes case-bg-shift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+        @keyframes case-ripple {
+            0% {
+                transform: scale(1);
+                opacity: 0.75;
+            }
+            70%, 100% {
+                transform: scale(1.04);
+                opacity: 0;
+            }
+        }
+        @keyframes case-charge-sweep {
+            0% { left: -80%; }
+            55%, 100% { left: 130%; }
+        }
+        @keyframes case-battery-fill {
+            0%, 100% { height: 15%; opacity: 0.7; }
+            50% { height: 85%; opacity: 1; }
+        }
+
+        .case-top-wrap .btn-learn { margin-top: 14px; }
+
+        .btn-learn {
+            position: relative;
+            display: block;
+            width: 100%;
+            overflow: hidden;
+            background: linear-gradient(135deg, #4ade80 0%, #22c55e 45%, #16a34a 100%);
+            background-size: 200% 100%;
+            color: white;
+            border: none;
+            padding: 16px 20px;
+            font-size: 16px;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            letter-spacing: 0.3px;
+            text-transform: capitalize;
+            animation: learn-glow 2.4s ease-in-out infinite, learn-bg-shift 4s ease infinite;
+        }
+        .btn-learn:hover {
+            animation: learn-glow-hover 1.6s ease-in-out infinite, learn-bg-shift 3s ease infinite;
+        }
+        .btn-learn .btn-case-label { z-index: 2; }
+        .btn-learn .btn-case-icon .charge-fill {
+            background: linear-gradient(180deg, #bbf7d0, #fff);
+            animation: learn-battery-fill 2.4s ease-in-out infinite;
+        }
+        .btn-learn::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 8px;
+            border: 2px solid rgba(255, 255, 255, 0.45);
+            animation: learn-ripple 2.2s ease-out infinite;
+            pointer-events: none;
+            z-index: 0;
+        }
+        .btn-learn::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -80%;
+            width: 50%;
+            height: 100%;
+            background: linear-gradient(
+                105deg,
+                transparent 0%,
+                rgba(255, 255, 255, 0.1) 40%,
+                rgba(255, 255, 255, 0.32) 50%,
+                rgba(255, 255, 255, 0.1) 60%,
+                transparent 100%
+            );
+            animation: learn-charge-sweep 2.8s ease-in-out infinite;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        @keyframes learn-glow {
+            0%, 100% {
+                box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.2), 0 4px 12px rgba(34, 197, 94, 0.22);
+            }
+            50% {
+                box-shadow:
+                    0 0 14px 4px rgba(34, 197, 94, 0.32),
+                    0 0 26px 7px rgba(74, 222, 128, 0.22),
+                    0 4px 14px rgba(22, 163, 74, 0.25);
+            }
+        }
+        @keyframes learn-glow-hover {
+            0%, 100% {
+                box-shadow: 0 0 9px 2px rgba(34, 197, 94, 0.28), 0 4px 14px rgba(34, 197, 94, 0.25);
+            }
+            50% {
+                box-shadow:
+                    0 0 18px 6px rgba(34, 197, 94, 0.38),
+                    0 0 30px 9px rgba(74, 222, 128, 0.25),
+                    0 4px 16px rgba(22, 163, 74, 0.3);
+            }
+        }
+        @keyframes learn-bg-shift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+        @keyframes learn-ripple {
+            0% { transform: scale(1); opacity: 0.75; }
+            70%, 100% { transform: scale(1.04); opacity: 0; }
+        }
+        @keyframes learn-charge-sweep {
+            0% { left: -80%; }
+            55%, 100% { left: 130%; }
+        }
+        @keyframes learn-battery-fill {
+            0%, 100% { height: 15%; opacity: 0.7; }
+            50% { height: 85%; opacity: 1; }
+        }
+
+        .learn-category {
+            font-size: 11px;
+            font-weight: 700;
+            color: #545b64;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin: 16px 0 8px;
+            padding-bottom: 4px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .learn-category:first-child { margin-top: 0; }
+        .learn-storage-badge {
+            background: #dcfce7;
+            color: #15803d;
+            border-color: #86efac;
+        }
+        .learn-detail-hero {
+            background: linear-gradient(135deg, #22c55e 0%, #16a34a 50%, var(--primary-color) 100%);
+            color: white;
+            padding: 24px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-bottom: 4px solid #4ade80;
+        }
+        .learn-detail-hero h3 { font-size: 20px; margin-bottom: 8px; }
+        .learn-detail-hero p { color: #ecfdf5; font-size: 14px; }
+        .example-case-card {
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            border-left: 4px solid #22c55e;
+            border-radius: 8px;
+            padding: 14px 16px;
+            margin-bottom: 12px;
+            font-size: 14px;
+        }
+        .example-case-card strong { color: #16a34a; display: block; margin-bottom: 6px; }
+        .example-case-card .cond { color: #545b64; margin-bottom: 8px; line-height: 1.5; }
+        .example-case-card .fit {
+            color: #16191f;
+            background: #fff;
+            padding: 8px 10px;
+            border-radius: 4px;
+            border: 1px solid var(--border-color);
+        }
+
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 1000;
+            background: var(--bg-color);
+            flex-direction: column;
+        }
+        .modal-overlay.open { display: flex; }
+
+        .modal-header {
+            background: var(--primary-color);
+            color: white;
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+            border-bottom: 4px solid var(--secondary-color);
+        }
+        .modal-header h2 { font-size: 18px; }
+        .modal-header .sub { font-size: 12px; color: #aab7c4; margin-top: 2px; }
+        .btn-close-modal {
+            background: rgba(255,255,255,0.15);
+            border: none;
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 22px;
+            line-height: 1;
+        }
+        .btn-close-modal:hover { background: rgba(255,255,255,0.25); }
+        .btn-back-list {
+            background: transparent;
+            border: 1px solid rgba(255,255,255,0.4);
+            color: white;
+            padding: 8px 14px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            margin-right: 12px;
+        }
+        .btn-back-list:hover { background: rgba(255,255,255,0.1); }
+
+        .modal-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            max-width: 900px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        .case-list { display: flex; flex-direction: column; gap: 12px; }
+        .case-item {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 16px 18px;
+            cursor: pointer;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+        .case-item:hover {
+            border-color: var(--secondary-color);
+            box-shadow: 0 4px 12px rgba(255, 153, 0, 0.15);
+        }
+        .case-item .case-name { font-weight: 600; font-size: 15px; }
+        .case-item .case-sector { font-size: 12px; color: #545b64; margin-top: 4px; }
+        .case-item .case-storage-badge {
+            background: #eaf6ed;
+            color: #1c5232;
+            font-size: 11px;
+            font-weight: 600;
+            padding: 5px 10px;
+            border-radius: 20px;
+            white-space: nowrap;
+            border: 1px solid #abdfc0;
+        }
+        .case-item .arrow { color: var(--secondary-color); font-size: 18px; }
+
+        #case-detail-view { display: none; }
+
+        .case-detail-hero {
+            background: linear-gradient(135deg, var(--primary-color) 0%, #37475a 100%);
+            color: white;
+            padding: 24px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-bottom: 4px solid var(--secondary-color);
+        }
+        .case-detail-hero .company-name { font-size: 22px; margin-bottom: 6px; }
+        .case-detail-hero .verdict-line {
+            font-size: 17px;
+            font-weight: 600;
+            color: #fff;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid rgba(255,255,255,0.2);
+        }
+        .case-detail-hero .profile-line { color: #d5dbdb; font-size: 14px; margin-top: 8px; }
+
+        .reason-list { list-style: none; margin: 0; padding: 0; }
+        .reason-item {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 14px 16px;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+        .reason-item .reason-num {
+            font-size: 11px;
+            font-weight: bold;
+            color: var(--secondary-color);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+        .reason-item .reason-dim {
+            font-weight: 600;
+            color: var(--primary-color);
+            font-size: 13px;
+            margin-bottom: 4px;
+        }
+        .reason-item .reason-text { color: #16191f; line-height: 1.5; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="case-top-wrap">
+        <button type="button" class="btn-case" id="btnOpenCase">
+            <span class="btn-case-label">
+                <span class="btn-case-icon" aria-hidden="true"><span class="charge-fill"></span></span>
+                10 company example with different case
+            </span>
+        </button>
+        <p class="hint">klik untuk 10 contoh perusahaan → lihat storage yang dipakai &amp; 15 alasannya (kebalikan dari kuesioner)</p>
+        <button type="button" class="btn-learn" id="btnOpenLearn">
+            <span class="btn-case-label">
+                <span class="btn-case-icon" aria-hidden="true"><span class="charge-fill"></span></span>
+                learn aws storage service
+            </span>
+        </button>
+    </div>
+
+    <header>
+        <h1>AWS Storage Decision Maker</h1>
+        <p>Satu perusahaan, satu profil. Jawab 15 pertanyaan tentang <strong>perusahaan Anda sendiri</strong>—sistem akan mengenali tipe workload Anda lalu merekomendasikan layanan storage AWS yang pas.</p>
+    </header>
+
+    <div class="info-box">
+        <strong>Cara kerja:</strong> Semua pertanyaan merujuk pada kondisi <em>perusahaan Anda</em> (bukan contoh perusahaan lain).
+        Setelah submit, sistem menganalisis pola akses, protokol, ukuran data, hybrid/cloud, DR, dan legacy—lalu menampilkan
+        <strong>profil perusahaan</strong> yang teridentifikasi dan pernyataan rekomendasi, misalnya: <em>“Perusahaan ini harus memakai Amazon EBS.”</em>
+    </div>
+
+    <div class="error-msg" id="error-msg"></div>
+
+    <div class="company-card">
+        <label for="companyName">Nama perusahaan Anda (opsional)</label>
+        <input type="text" id="companyName" placeholder="Contoh: PT Maju Digital Indonesia" maxlength="120">
+        <p class="hint">Nama akan muncul di hasil analisis profil dan rekomendasi storage.</p>
+    </div>
+
+    <form id="decisionForm"></form>
+
+    <div class="main-action-group">
+        <button type="button" class="btn-submit" id="btnSubmit">Analisis Perusahaan Saya</button>
+        <button type="button" class="btn-list-companies" id="btnListCompanies">list perusahaan anda</button>
+    </div>
+    <p class="by-credit">by mukti w</p>
+
+    <div id="result-panel">
+        <div class="profile-hero">
+            <div class="label">Profil perusahaan teridentifikasi</div>
+            <h2 id="profile-name"></h2>
+            <p id="profile-desc"></p>
+        </div>
+
+        <div class="result-section">
+            <h3>Karakteristik perusahaan Anda (dari jawaban)</h3>
+            <div class="trait-grid" id="profile-traits"></div>
+        </div>
+
+        <div class="result-hero">
+            <div class="label">Rekomendasi storage utama</div>
+            <h2 id="result-title"></h2>
+            <p id="result-summary"></p>
+            <p class="verdict" id="result-verdict"></p>
+        </div>
+
+        <div class="result-section radar-section" id="radar-section">
+            <h3>Profil kecocokan storage (radar chart)</h3>
+            <p class="radar-sub">Perbandingan kebutuhan perusahaan Anda (biru) vs karakteristik layanan yang direkomendasikan (oranye). Semakin overlap, semakin cocok.</p>
+            <div class="radar-wrap">
+                <div class="radar-chart-box">
+                    <svg id="storageRadarChart" viewBox="0 0 420 420" role="img" aria-label="Radar chart profil storage"></svg>
+                </div>
+                <div class="radar-legend" id="radarLegend"></div>
+            </div>
+            <p class="radar-axis-hint">Skala 0–100 per dimensi · berdasarkan 15 jawaban kuesioner</p>
+        </div>
+
+        <div class="result-section">
+            <h3>Alasan rekomendasi ini</h3>
+            <p id="result-why" style="font-size:14px;"></p>
+            <div class="match-tags" id="result-tags"></div>
+        </div>
+
+        <div class="result-section">
+            <h3>Langkah optimasi (AWS best practice)</h3>
+            <ul id="result-next"></ul>
+        </div>
+
+        <div class="result-section" id="supplement-section">
+            <h3>Layanan pelengkap yang mungkin Anda butuhkan</h3>
+            <div id="result-supplements"></div>
+        </div>
+
+        <div class="result-section">
+            <h3>Alternatif storage (peringkat 2–3)</h3>
+            <div id="result-alts"></div>
+        </div>
+
+        <button type="button" class="btn-reset" id="btnReset">Isi Ulang untuk Perusahaan Lain</button>
+    </div>
+</div>
+
+<div class="modal-overlay" id="caseModal" aria-hidden="true">
+    <div class="modal-header">
+        <div>
+            <button type="button" class="btn-back-list" id="btnBackList" style="display:none;">← Daftar</button>
+            <h2 id="modalTitle">10 company example with different case</h2>
+            <p class="sub" id="modalSub">Klik perusahaan untuk melihat rekomendasi storage dan 15 alasan</p>
+        </div>
+        <button type="button" class="btn-close-modal" id="btnCloseModal" title="Tutup">×</button>
+    </div>
+    <div class="modal-body">
+        <div id="case-list-view">
+            <div class="case-list" id="caseList"></div>
+        </div>
+        <div id="case-detail-view">
+            <div class="case-detail-hero" id="caseDetailHero"></div>
+            <div class="result-section">
+                <h3>15 alasan pemilihan storage (sesuai dimensi analisis)</h3>
+                <ol class="reason-list" id="caseReasonList"></ol>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="savedModal" aria-hidden="true">
+    <div class="modal-header">
+        <div>
+            <h2 id="savedModalTitle">List perusahaan anda</h2>
+            <p class="sub" id="savedModalSub">Deploy Netlify: cukup <strong>index.html</strong> + <strong>companies.json</strong>. Simpan otomatis di browser; file JSON untuk data awal / sinkron manual.</p>
+            <p id="sync-status" class="sync-status ok"></p>
+        </div>
+        <button type="button" class="btn-close-modal" id="btnCloseSavedModal" title="Tutup">×</button>
+    </div>
+    <div class="modal-body">
+        <div class="storage-toolbar">
+            <button type="button" class="primary-action" id="btnExportJson">Unduh companies.json</button>
+            <button type="button" id="btnImportJson">Import companies.json</button>
+            <input type="file" id="importBackupInput" accept="application/json,.json">
+        </div>
+        <div id="savedList"></div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="learnModal" aria-hidden="true">
+    <div class="modal-header" style="border-bottom-color:#22c55e;">
+        <div>
+            <button type="button" class="btn-back-list" id="btnBackLearnList" style="display:none;">← Daftar</button>
+            <h2 id="learnModalTitle">Learn AWS Storage Service</h2>
+            <p class="sub" id="learnModalSub">Klik layanan untuk use case &amp; contoh perusahaan</p>
+        </div>
+        <button type="button" class="btn-close-modal" id="btnCloseLearnModal" title="Tutup">×</button>
+    </div>
+    <div class="modal-body">
+        <div id="learn-list-view">
+            <div id="learnList"></div>
+        </div>
+        <div id="learn-detail-view" style="display:none;">
+            <div class="learn-detail-hero" id="learnDetailHero"></div>
+            <div class="result-section">
+                <h3>Use case utama</h3>
+                <p id="learnUseCase" style="font-size:14px;line-height:1.6;"></p>
+            </div>
+            <div class="result-section">
+                <h3>Kapan perusahaan memakai layanan ini</h3>
+                <ul id="learnWhenList" style="margin-left:18px;font-size:14px;"></ul>
+            </div>
+            <div class="result-section">
+                <h3>Contoh perusahaan &amp; kondisi yang cocok</h3>
+                <div id="learnExamples"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const SERVICES = {
+        ebs: {
+            name: 'Amazon Elastic Block Store (Amazon EBS)',
+            short: 'Amazon EBS',
+            summary: 'Penyimpanan block berlatensi rendah yang ditempelkan ke instance Amazon EC2.',
+            why: 'Profil perusahaan Anda menunjukkan kebutuhan block storage dengan IOPS/throughput dapat diprovision, persistence kuat, dan latensi rendah—cocok untuk database, ERP, atau aplikasi stateful di EC2.',
+            tags: ['Block storage', 'High IOPS', 'EC2-attached', 'Low latency'],
+            next: [
+                'Ukur IOPS dan throughput aktual, lalu pilih gp3 atau io2.',
+                'Pantau CloudWatch: VolumeReadOps, VolumeWriteOps.',
+                'Otomatisasi perluasan volume saat threshold tercapai.'
+            ]
+        },
+        s3: {
+            name: 'Amazon Simple Storage Service (Amazon S3)',
+            short: 'Amazon S3',
+            summary: 'Object storage skala hampir tak terbatas dengan metadata fleksibel.',
+            why: 'Perusahaan Anda membutuhkan penyimpanan cloud-native skala besar untuk aplikasi modern, analitik, backup online, atau konten dengan pola akses bervariasi.',
+            tags: ['Unlimited scale', 'Object storage', 'Cloud-native', 'Data lake'],
+            next: [
+                'Pilih storage class sesuai frekuensi akses (Standard, IA, Intelligent-Tiering).',
+                'Aktifkan S3 Lifecycle untuk optimasi biaya otomatis.',
+                'Pantau BucketSizeBytes dan request metrics di CloudWatch.'
+            ]
+        },
+        glacier: {
+            name: 'Amazon S3 Glacier / S3 Glacier Deep Archive',
+            short: 'Amazon S3 Glacier',
+            summary: 'Arsip murah untuk data jarang diakses dan retensi jangka panjang.',
+            why: 'Sebagian besar data perusahaan Anda bersifat arsip atau regulasi—jarang diakses tetapi harus durable dan murah per GB.',
+            tags: ['Archive', 'Low cost', 'Compliance retention', 'Infrequent access'],
+            next: [
+                'Gunakan S3 Lifecycle untuk memindahkan objek ke Glacier otomatis.',
+                'Rencanakan waktu restore (RTO) sebelum memilih kelas Glacier.',
+                'Dokumentasikan kebijakan retensi untuk audit compliance.'
+            ]
+        },
+        efs: {
+            name: 'Amazon Elastic File System (Amazon EFS)',
+            short: 'Amazon EFS',
+            summary: 'Shared file storage Multi-AZ dengan protokol NFS.',
+            why: 'Perusahaan Anda membutuhkan file share Linux yang dapat diakses banyak instance/container sekaligus di beberapa AZ dengan skala elastis.',
+            tags: ['NFS', 'Multi-AZ', 'Shared file', 'Linux'],
+            next: [
+                'Pilih General Purpose atau Max I/O performance mode.',
+                'Gunakan EFS Lifecycle Management untuk tiering biaya.',
+                'Pantau ThroughputUtilization di CloudWatch.'
+            ]
+        },
+        fsx_lustre: {
+            name: 'Amazon FSx for Lustre',
+            short: 'Amazon FSx for Lustre',
+            summary: 'File system performa sangat tinggi untuk HPC dan ML (POSIX).',
+            why: 'Workload perusahaan Anda menuntut throughput file masif untuk komputasi paralel, simulasi, atau training ML dengan semantik POSIX.',
+            tags: ['HPC', 'ML training', 'POSIX', 'High throughput'],
+            next: [
+                'Pilih SSD vs HDD deployment type.',
+                'Benchmark throughput sebelum go-live.',
+                'Pertimbangkan integrasi repository dengan S3.'
+            ]
+        },
+        fsx_ontap: {
+            name: 'Amazon FSx for NetApp ONTAP',
+            short: 'Amazon FSx for NetApp ONTAP',
+            summary: 'Storage NetApp ONTAP: block (iSCSI) + file (NFS & SMB).',
+            why: 'Perusahaan Anda memiliki atau membutuhkan ekosistem NetApp dengan multi-protokol dan fitur enterprise (snapshot, SnapMirror).',
+            tags: ['NetApp ONTAP', 'iSCSI + NFS + SMB', 'Enterprise NAS'],
+            next: [
+                'Rencanakan kapasitas throughput per volume.',
+                'Manfaatkan SnapMirror untuk DR.',
+                'Audit kebijakan snapshot retention.'
+            ]
+        },
+        fsx_openzfs: {
+            name: 'Amazon FSx for OpenZFS',
+            short: 'Amazon FSx for OpenZFS',
+            summary: 'Managed OpenZFS untuk migrasi file storage dengan workflow yang sama.',
+            why: 'Perusahaan Anda saat ini memakai OpenZFS on-premises dan ingin pindah ke cloud tanpa mengubah cara kerja tim.',
+            tags: ['OpenZFS', 'Migration', 'Snapshots', 'Minimal refactor'],
+            next: [
+                'Validasi kompatibilitas aplikasi dengan export NFS/SMB.',
+                'Uji restore snapshot sebelum cutover.',
+                'Rencanakan throughput capacity unit.'
+            ]
+        },
+        fsx_windows: {
+            name: 'Amazon FSx for Windows File Server',
+            short: 'Amazon FSx for Windows File Server',
+            summary: 'Windows native SMB file system dengan integrasi Active Directory.',
+            why: 'Aplikasi bisnis perusahaan Anda berbasis Windows dan membutuhkan SMB native serta integrasi AD.',
+            tags: ['SMB', 'Windows', 'Active Directory', 'File shares'],
+            next: [
+                'Tentukan Single-AZ vs Multi-AZ untuk SLA.',
+                'Konfigurasi backup otomatis harian.',
+                'Pantau StorageCapacityUtilization.'
+            ]
+        },
+        snowcone: {
+            name: 'AWS Snowcone',
+            short: 'AWS Snowcone',
+            summary: 'Perangkat Snow terkecil untuk edge dan lokasi tanpa data center.',
+            why: 'Operasi perusahaan Anda di lokasi terpencil/terputus internet membutuhkan perangkat rugged ringan untuk kumpul dan proses data.',
+            tags: ['Edge', 'Rugged', 'Portable', 'Disconnected'],
+            next: ['Rencanakan keamanan fisik dan enkripsi perangkat.', 'Jadwalkan import ke S3 saat koneksi tersedia.']
+        },
+        snowball: {
+            name: 'AWS Snowball / Snowball Edge',
+            short: 'AWS Snowball',
+            summary: 'Migrasi TB–PB atau compute edge (Storage/Compute Optimized).',
+            why: 'Perusahaan Anda perlu memindahkan data besar dengan koneksi terbatas, atau ML/compute di lingkungan offline.',
+            tags: ['Bulk transfer', 'Edge ML', 'Offline', 'TB–PB'],
+            next: ['Pilih Storage vs Compute Optimized.', 'Buat job di Snow Family Console.', 'Verifikasi chain-of-custody pengiriman.']
+        },
+        snowmobile: {
+            name: 'AWS Snowmobile',
+            short: 'AWS Snowmobile',
+            summary: 'Kontainer 45 kaki untuk migrasi exabyte-class data center.',
+            why: 'Volume data perusahaan Anda sangat masif (puluhan PB+) sehingga transfer online tidak realistis.',
+            tags: ['Exabyte scale', 'Datacenter exit', 'Massive migration'],
+            next: ['Hubungi AWS untuk assessment kapasitas.', 'Rencanakan logistik loading site.', 'Parallel planning cutover aplikasi.']
+        },
+        outposts: {
+            name: 'AWS Outposts',
+            short: 'AWS Outposts',
+            summary: 'Infrastruktur AWS fully managed di lokasi perusahaan Anda.',
+            why: 'Perusahaan Anda wajib menjalankan workload AWS di gedung sendiri karena data residency, latensi lokal, atau regulasi.',
+            tags: ['On-premises AWS', 'Data residency', 'Hybrid', 'Regulated'],
+            next: ['Tentukan variant rack vs servers.', 'Rencanakan koneksi ke Region untuk backup.', 'Definisikan VPC dan layanan di Outpost.']
+        },
+        s3_file_gateway: {
+            name: 'Amazon S3 File Gateway',
+            short: 'Amazon S3 File Gateway',
+            summary: 'SMB/NFS on-premises ke objek S3 dengan local cache.',
+            why: 'Aplikasi legacy perusahaan butuh protokol file lokal, tetapi data authoritative harus sebagai objek durable di S3.',
+            tags: ['Hybrid', 'SMB/NFS to S3', 'Local cache', 'Legacy apps'],
+            next: ['Ukuran cache sesuai working set hot.', 'Pantau CacheHitPercent.', 'Lifecycle policy di bucket S3 backend.']
+        },
+        fsx_file_gateway: {
+            name: 'Amazon FSx File Gateway',
+            short: 'Amazon FSx File Gateway',
+            summary: 'SMB on-premises berlatensi rendah ke FSx for Windows di cloud.',
+            why: 'User Windows perusahaan di cabang/site lokal butuh SMB cepat ke file share yang authoritative di cloud.',
+            tags: ['SMB hybrid', 'Branch office', 'FSx Windows', 'Low latency'],
+            next: ['Deploy gateway di site dengan user terbanyak.', 'Sinkronkan AD trust.', 'Rencanakan DR Multi-AZ FSx.']
+        },
+        volume_gateway: {
+            name: 'Volume Gateway (AWS Storage Gateway)',
+            short: 'Volume Gateway',
+            summary: 'Volume block iSCSI on-premises dengan snapshot ke EBS.',
+            why: 'Aplikasi perusahaan memakai SAN/iSCSI lokal dan butuh backup DR point-in-time ke EBS tanpa refactor ke object.',
+            tags: ['iSCSI', 'Block hybrid', 'EBS snapshots'],
+            next: ['Pilih cached vs stored volumes.', 'Jadwalkan snapshot policy.', 'Uji RTO recovery dari EBS.']
+        },
+        tape_gateway: {
+            name: 'Tape Gateway (AWS Storage Gateway)',
+            short: 'Tape Gateway',
+            summary: 'Virtual tape library menggantikan physical tape backup.',
+            why: 'Perusahaan Anda masih memakai proses backup tape dan ingin memodernisasi ke cloud tanpa ganti software backup.',
+            tags: ['Tape replacement', 'VTL', 'Legacy backup'],
+            next: ['Integrasikan software backup existing.', 'Definisikan retention per virtual tape.', 'Audit restore procedure berkala.']
+        },
+        datasync: {
+            name: 'AWS DataSync',
+            short: 'AWS DataSync',
+            summary: 'Sinkronisasi data online otomatis on-premises ke AWS Storage.',
+            why: 'Perusahaan Anda perlu memindahkan atau menyinkronkan file secara berkala dari server lokal ke cloud—bukan migrasi server utuh.',
+            tags: ['Online sync', 'NFS/SMB', 'Scheduled transfer'],
+            next: ['Jalankan task trial untuk benchmark.', 'Exclude path yang tidak perlu.', 'Pantau bytes transferred.']
+        },
+        transfer_family: {
+            name: 'AWS Transfer Family',
+            short: 'AWS Transfer Family',
+            summary: 'SFTP/FTPS/FTP terkelola ke S3 atau EFS.',
+            why: 'Mitra atau vendor eksternal perusahaan Anda wajib mengunggah file via protokol SFTP/FTPS standar industri.',
+            tags: ['SFTP', 'B2B', 'Managed FTP', 'Partner upload'],
+            next: ['Konfigurasi IAM atau identity provider.', 'Mapping direktori ke bucket/prefix.', 'Aktifkan logging untuk audit.']
+        },
+        mgn: {
+            name: 'AWS Application Migration Service (AWS MGN)',
+            short: 'AWS MGN',
+            summary: 'Lift-and-shift: replikasi kontinu server ke AWS.',
+            why: 'Proyek perusahaan Anda adalah memigrasi seluruh server (VM/fisik) ke EC2 dengan downtime minimal.',
+            tags: ['Lift-and-shift', 'Server replication', 'Rehost'],
+            next: ['Install agent MGN di server sumber.', 'Test cutover sebelum migrasi final.', 'Right-size instance pasca-migrasi.']
+        },
+        aws_backup: {
+            name: 'AWS Backup',
+            short: 'AWS Backup',
+            summary: 'Backup terpusat berbasis kebijakan lintas layanan AWS.',
+            why: 'Perusahaan Anda butuh kebijakan backup terstandar dan compliance lintas RDS, EBS, DynamoDB, EFS, dll.',
+            tags: ['Centralized backup', 'Policy-based', 'Compliance'],
+            next: ['Definisikan backup plan per tier.', 'Cross-region copy untuk DR.', 'Uji restore bulanan.']
+        },
+        cloudendure: {
+            name: 'CloudEndure Disaster Recovery',
+            short: 'CloudEndure Disaster Recovery',
+            summary: 'DR kontinu dengan failover cepat ke AWS.',
+            why: 'Perusahaan Anda menuntut RTO/RPO ketat—pulih dari bencana dalam menit, bukan hanya backup harian.',
+            tags: ['Disaster recovery', 'Low RTO', 'Continuous replication'],
+            next: ['Jalankan DR drill berkala.', 'Dokumentasikan runbook failover/failback.', 'Alarm pada replication lag.']
+        }
+    };
+
+    /* Profil perusahaan — sistem mendeteksi dari akumulasi sinyal jawaban */
+    const COMPANY_PROFILES = [
+        {
+            id: 'database_stateful',
+            name: 'Perusahaan Berbasis Database & Aplikasi Stateful',
+            description: 'Fokus utama pada database, ERP, OLTP, atau aplikasi di server yang membutuhkan disk block cepat dan persistence kuat.',
+            weights: { block: 4, high_iops: 3, ec2: 3, low_latency: 2, object: -2, archive: -1, nfs: -1 },
+            service: 'ebs',
+            traits: ['Database / ERP', 'Block storage', 'IOPS tinggi', 'EC2']
+        },
+        {
+            id: 'cloud_native',
+            name: 'Perusahaan Cloud-Native & Data Platform',
+            description: 'Aplikasi modern, microservices, analitik, atau data lake dengan volume data besar dan akses via API objek.',
+            weights: { object: 4, cloud_native: 3, analytics: 2, scale_unlimited: 2, block: -2, smb: -1 },
+            service: 's3',
+            traits: ['Aplikasi modern', 'Object storage', 'Skala besar', 'Analitik']
+        },
+        {
+            id: 'archive_compliance',
+            name: 'Perusahaan Arsip & Retensi Regulasi',
+            description: 'Dominasi data historis, compliance, dan retensi jangka panjang dengan akses jarang serta prioritas biaya per GB.',
+            weights: { archive: 5, compliance: 3, infrequent_access: 3, cost_priority: 2, high_iops: -2 },
+            service: 'glacier',
+            traits: ['Arsip jangka panjang', 'Compliance', 'Akses jarang', 'Biaya rendah/GB']
+        },
+        {
+            id: 'linux_shared',
+            name: 'Perusahaan dengan Shared File Linux',
+            description: 'Banyak server/container Linux mengakses folder yang sama secara bersamaan di beberapa AZ.',
+            weights: { nfs: 5, shared: 4, linux: 3, multi_az: 2, block: -1, smb: -2 },
+            service: 'efs',
+            traits: ['NFS', 'Multi-AZ', 'Shared file', 'Linux workloads']
+        },
+        {
+            id: 'hpc_ml',
+            name: 'Perusahaan HPC / Riset & Machine Learning',
+            description: 'Komputasi paralel, simulasi, genomics, rendering, atau training ML dengan throughput file ekstrem.',
+            weights: { hpc: 5, posix: 4, high_throughput: 4, ml: 3, parallel: 3 },
+            service: 'fsx_lustre',
+            traits: ['HPC / ML', 'POSIX', 'Throughput tinggi', 'Parallel I/O']
+        },
+        {
+            id: 'windows_enterprise',
+            name: 'Perusahaan Windows Enterprise File Services',
+            description: 'Dominasi Windows, Active Directory, SMB file shares, dan aplikasi bisnis legacy .NET/SQL file.',
+            weights: { smb: 5, windows: 4, ad: 3, shared: 2, nfs: -2 },
+            service: 'fsx_windows',
+            traits: ['SMB', 'Windows', 'Active Directory', 'File shares']
+        },
+        {
+            id: 'netapp_enterprise',
+            name: 'Perusahaan Enterprise Storage (NetApp)',
+            description: 'Investasi NetApp ONTAP, kebutuhan multi-protokol iSCSI+NFS+SMB, dan fitur snapshot/replikasi enterprise.',
+            weights: { netapp: 5, iscsi: 3, smb: 2, nfs: 2, enterprise: 3 },
+            service: 'fsx_ontap',
+            traits: ['NetApp ONTAP', 'Multi-protokol', 'Enterprise NAS/SAN']
+        },
+        {
+            id: 'openzfs_migration',
+            name: 'Perusahaan Migrasi dari OpenZFS',
+            description: 'Infrastruktur file saat ini berbasis OpenZFS dan ingin naik ke cloud dengan workflow minimal berubah.',
+            weights: { openzfs: 5, migration_file: 3, snapshots: 2 },
+            service: 'fsx_openzfs',
+            traits: ['OpenZFS', 'Migrasi file', 'Snapshot workflow']
+        },
+        {
+            id: 'hybrid_branch',
+            name: 'Perusahaan Hybrid Multi-Cabang',
+            description: 'Kantor/cabang on-premises masih butuh akses file cepat ke data authoritative di cloud.',
+            weights: { hybrid: 5, on_prem: 3, smb: 3, low_latency_local: 3, branch: 2 },
+            service: 'fsx_file_gateway',
+            traits: ['Hybrid', 'Cabang on-prem', 'SMB lokal', 'Cloud authoritative']
+        },
+        {
+            id: 'hybrid_legacy_file',
+            name: 'Perusahaan Hybrid dengan Aplikasi Legacy',
+            description: 'Aplikasi di data center hanya mengenal SMB/NFS, sementara data harus disimpan sebagai objek di S3.',
+            weights: { hybrid: 4, legacy_app: 4, nfs: 2, smb: 2, object: 2 },
+            service: 's3_file_gateway',
+            traits: ['Hybrid', 'Legacy SMB/NFS', 'S3 backend', 'Local cache']
+        },
+        {
+            id: 'data_residency',
+            name: 'Perusahaan Regulasi Data Residency',
+            description: 'Data dan layanan AWS harus berjalan di lokasi fisik perusahaan karena regulasi atau latensi ultra-lokal.',
+            weights: { data_residency: 5, on_prem: 4, regulated: 3, hybrid: 2 },
+            service: 'outposts',
+            traits: ['Data residency', 'On-premises AWS', 'Regulasi ketat']
+        },
+        {
+            id: 'edge_disconnected',
+            name: 'Perusahaan Operasi Edge / Lokasi Terpencil',
+            description: 'Tim bekerja di lokasi tanpa internet stabil—kapal, rig, tambang, atau site kecil.',
+            weights: { edge: 5, disconnected: 4, portable: 3, small_site: 2 },
+            service: 'snowcone',
+            traits: ['Edge', 'Offline', 'Lokasi terpencil', 'Portable device']
+        },
+        {
+            id: 'massive_migration',
+            name: 'Perusahaan Migrasi Data Center Masif',
+            description: 'Memindahkan puluhan petabyte dari data center lama; koneksi jaringan tidak memadai untuk transfer online.',
+            weights: { massive_data: 5, migration_bulk: 4, pb_scale: 4, offline_transfer: 3 },
+            service: 'snowball',
+            traits: ['Migrasi PB+', 'Offline transfer', 'Data center exit']
+        },
+        {
+            id: 'b2b_integration',
+            name: 'Perusahaan Integrasi File B2B',
+            description: 'Banyak mitra/vendor harus mengunggah atau mengunduh file via SFTP/FTPS ke sistem Anda.',
+            weights: { sftp: 5, b2b: 4, external_upload: 3 },
+            service: 'transfer_family',
+            traits: ['SFTP/FTPS', 'Mitra eksternal', 'B2B file exchange']
+        },
+        {
+            id: 'sync_hybrid',
+            name: 'Perusahaan Sinkronisasi Data Berkala',
+            description: 'Server file on-premises harus tersinkron ke cloud secara terjadwal tanpa memigrasi seluruh server.',
+            weights: { sync: 5, hybrid: 3, scheduled: 3, nfs: 2, smb: 2 },
+            service: 'datasync',
+            traits: ['Sync terjadwal', 'Hybrid', 'NFS/SMB ke cloud']
+        },
+        {
+            id: 'server_migration',
+            name: 'Perusahaan dalam Proyek Migrasi Server',
+            description: 'Memindahkan ratusan VM/server ke AWS dengan replikasi kontinu dan cutover terencana.',
+            weights: { server_migration: 5, vmware: 3, lift_shift: 4, replication: 3 },
+            service: 'mgn',
+            traits: ['Migrasi server', 'Lift-and-shift', 'Replikasi VM']
+        },
+        {
+            id: 'disaster_recovery',
+            name: 'Perusahaan Mission-Critical DR',
+            description: 'RTO/RPO ketat; sistem harus pulih dalam menit saat bencana, bukan sekadar backup harian.',
+            weights: { dr_critical: 5, low_rto: 4, failover: 4, replication: 3 },
+            service: 'cloudendure',
+            traits: ['Disaster recovery', 'RTO menit', 'Failover cepat']
+        },
+        {
+            id: 'centralized_backup',
+            name: 'Perusahaan dengan Kebijakan Backup Terpusat',
+            description: 'Butuh backup policy satu pintu lintas RDS, EBS, DynamoDB, EFS, dan multi-akun Organizations.',
+            weights: { backup_policy: 5, compliance: 2, multi_account: 3 },
+            service: 'aws_backup',
+            traits: ['Backup terpusat', 'Policy-based', 'Multi-service']
+        }
+    ];
+
+    /* 15 pertanyaan — semua tentang PERUSAHAAN ANDA */
+    const QUESTIONS = [
+        {
+            id: 'q1',
+            dim: 'Beban kerja utama',
+            text: 'Apa jenis beban kerja data <strong>utama</strong> di perusahaan Anda saat ini?',
+            options: [
+                { label: 'Database, ERP, OLTP, atau aplikasi stateful di server (VM/EC2)', signals: { block: 3, ec2: 2, high_iops: 1 }, scores: { ebs: 10 } },
+                { label: 'Aplikasi web/mobile, microservices, API, dan platform data/analitik', signals: { object: 3, cloud_native: 2, analytics: 1 }, scores: { s3: 10 } },
+                { label: 'Komputasi paralel, simulasi, riset ilmiah, atau training machine learning', signals: { hpc: 3, posix: 2, ml: 2, parallel: 2 }, scores: { fsx_lustre: 12 } },
+                { label: 'File share kantor (dokumen, home drive) untuk banyak karyawan', signals: { shared: 2 }, scores: { efs: 4, fsx_windows: 8 } }
+            ]
+        },
+        {
+            id: 'q2',
+            dim: 'Model akses storage',
+            text: 'Bagaimana aplikasi di perusahaan Anda <strong>paling sering</strong> mengakses data?',
+            options: [
+                { label: 'Sebagai disk/volume block langsung ke satu server (seperti C: / /dev/xvda)', signals: { block: 4, ec2: 2 }, scores: { ebs: 12, volume_gateway: 3 } },
+                { label: 'Sebagai folder bersama (file share) yang di-mount banyak mesin', signals: { shared: 3, nfs: 1, smb: 1 }, scores: { efs: 6, fsx_windows: 6 } },
+                { label: 'Melalui API objek (HTTP/SDK) atau bucket cloud', signals: { object: 4, cloud_native: 2 }, scores: { s3: 12 } },
+                { label: 'Campuran: aplikasi lama pakai file share, data baru ke cloud object', signals: { hybrid: 3, legacy_app: 2, object: 1 }, scores: { s3_file_gateway: 10, datasync: 5 } }
+            ]
+        },
+        {
+            id: 'q3',
+            dim: 'Frekuensi akses',
+            text: 'Seberapa sering data produksi perusahaan Anda diakses dalam kondisi normal?',
+            options: [
+                { label: 'Hampir terus-menerus (real-time / harian intensif)', signals: { hot_access: 3, high_iops: 1 }, scores: { ebs: 6, s3: 6, efs: 5 } },
+                { label: 'Reguler tapi tidak 24/7 (jam kerja, batch malam)', signals: { warm_access: 2 }, scores: { s3: 8, efs: 6, fsx_windows: 5 } },
+                { label: 'Sebagian besar jarang—arsip, audit, atau backup lama', signals: { archive: 3, infrequent_access: 3 }, scores: { glacier: 14, s3: 4 } },
+                { label: 'Campuran: data panas sedikit, sisanya arsip bertahun-tahun', signals: { archive: 2, hot_access: 1 }, scores: { s3: 10, glacier: 10 } }
+            ]
+        },
+        {
+            id: 'q4',
+            dim: 'Performa IOPS & throughput',
+            text: 'Kebutuhan performa IOPS/throughput storage untuk workload <strong>terpenting</strong> perusahaan Anda?',
+            options: [
+                { label: 'Sangat tinggi—database atau aplikasi tidak toleran latency', signals: { high_iops: 4, low_latency: 3 }, scores: { ebs: 12, fsx_lustre: 4 } },
+                { label: 'Tinggi untuk throughput file paralel (bukan sekadar IOPS random)', signals: { high_throughput: 4, hpc: 2 }, scores: { fsx_lustre: 12, efs: 4 } },
+                { label: 'Sedang—cukup untuk file share atau aplikasi bisnis biasa', signals: { warm_access: 1 }, scores: { efs: 8, fsx_windows: 8, s3: 5 } },
+                { label: 'Rendah—yang penting murah per GB dan durable', signals: { cost_priority: 2, archive: 1 }, scores: { glacier: 10, s3: 8 } }
+            ]
+        },
+        {
+            id: 'q5',
+            dim: 'Protokol akses',
+            text: 'Protokol akses storage apa yang <strong>wajib</strong> didukung oleh sistem perusahaan Anda?',
+            options: [
+                { label: 'Tidak ada protokol file—hanya block volume ke OS server', signals: { block: 2 }, scores: { ebs: 12 } },
+                { label: 'NFS (umumnya lingkungan Linux)', signals: { nfs: 4, linux: 3 }, scores: { efs: 12, fsx_lustre: 4 } },
+                { label: 'SMB/CIFS (umumnya lingkungan Windows)', signals: { smb: 4, windows: 3 }, scores: { fsx_windows: 12, fsx_file_gateway: 6 } },
+                { label: 'SFTP/FTPS/FTP untuk mitra eksternal', signals: { sftp: 4, b2b: 3, external_upload: 2 }, scores: { transfer_family: 14 } },
+                { label: 'iSCSI atau multi-protokol enterprise (NFS+SMB+iSCSI)', signals: { iscsi: 3, netapp: 2, enterprise: 2 }, scores: { fsx_ontap: 12, volume_gateway: 6 } }
+            ]
+        },
+        {
+            id: 'q6',
+            dim: 'Sharing & skala klien',
+            text: 'Berapa banyak sistem yang harus mengakses <strong>dataset yang sama</strong> secara bersamaan?',
+            options: [
+                { label: 'Satu server saja (atau cluster aktif-pasif kecil)', signals: { single_host: 2, block: 1 }, scores: { ebs: 10 } },
+                { label: 'Beberapa puluh instance/container di cloud (Linux)', signals: { shared: 3, nfs: 2, multi_az: 2, linux: 2 }, scores: { efs: 12 } },
+                { label: 'Ratusan node komputasi paralel (HPC/ML)', signals: { parallel: 3, hpc: 2, posix: 2 }, scores: { fsx_lustre: 14 } },
+                { label: 'Ribuan user Windows di kantor/cabang', signals: { shared: 2, smb: 3, windows: 2, branch: 2 }, scores: { fsx_windows: 10, fsx_file_gateway: 8 } }
+            ]
+        },
+        {
+            id: 'q7',
+            dim: 'Ukuran dataset',
+            text: 'Perkiraan <strong>total ukuran</strong> data yang perlu disimpan (semua workload utama) dalam 2–3 tahun ke depan?',
+            options: [
+                { label: 'Di bawah 10 TB', signals: { small_data: 2 }, scores: { ebs: 8, efs: 8, s3: 6 } },
+                { label: '10 TB – 1 PB', signals: { medium_data: 2, scale_unlimited: 1 }, scores: { s3: 10, efs: 7, fsx_windows: 6, snowball: 4 } },
+                { label: '1 PB – 10 PB', signals: { large_data: 2, migration_bulk: 1 }, scores: { s3: 8, snowball: 12, datasync: 6 } },
+                { label: 'Di atas 10 PB (data center besar)', signals: { massive_data: 4, pb_scale: 3, offline_transfer: 2 }, scores: { snowmobile: 14, snowball: 10 } }
+            ]
+        },
+        {
+            id: 'q8',
+            dim: 'Kritisitas & regulasi',
+            text: 'Seberapa kritis dan teregulasi data bisnis utama perusahaan Anda?',
+            options: [
+                { label: 'Sangat kritis—downtime atau kehilangan data tidak boleh terjadi', signals: { dr_critical: 2, compliance: 1 }, scores: { cloudendure: 8, aws_backup: 8, ebs: 6 } },
+                { label: 'Kritis dengan retensi audit/compliance jangka panjang', signals: { compliance: 3, archive: 2 }, scores: { glacier: 8, aws_backup: 10, s3: 5 } },
+                { label: 'Standar bisnis—backup rutin cukup, bukan trading/RS', signals: { backup_policy: 2 }, scores: { aws_backup: 10, s3: 5, ebs: 5 } },
+                { label: 'Tidak terlalu kritis—banyak data transient/analytics', signals: { transient: 2, analytics: 2 }, scores: { s3: 12 } }
+            ]
+        },
+        {
+            id: 'q9',
+            dim: 'Umur & sifat data',
+            text: 'Karakteristik <strong>umur data</strong> dominan di perusahaan Anda?',
+            options: [
+                { label: 'Mayoritas data aktif &lt; 90 hari (operasional harian)', signals: { hot_access: 2, transient: 1 }, scores: { ebs: 6, s3: 8, efs: 6 } },
+                { label: 'Campuran aktif + arsip multi-tahun (lifecycle)', signals: { archive: 2 }, scores: { s3: 10, glacier: 8 } },
+                { label: 'Dominan arsip & retensi regulasi 5–10+ tahun', signals: { archive: 4, infrequent_access: 3, compliance: 2 }, scores: { glacier: 14 } },
+                { label: 'Banyak data sementara (log, clickstream, telemetry)', signals: { transient: 3, analytics: 2 }, scores: { s3: 14 } }
+            ]
+        },
+        {
+            id: 'q10',
+            dim: 'Lokasi infrastruktur',
+            text: 'Di mana infrastruktur IT utama perusahaan Anda berjalan <strong>hari ini atau target 12 bulan</strong>?',
+            options: [
+                { label: 'Sepenuhnya di AWS cloud (region publik)', signals: { cloud_only: 2 }, scores: { s3: 4, ebs: 4, efs: 4 } },
+                { label: 'Hybrid: data center/kantor + AWS', signals: { hybrid: 4, on_prem: 3 }, scores: { datasync: 8, s3_file_gateway: 8, fsx_file_gateway: 7, volume_gateway: 6 } },
+                { label: 'Harus tetap di gedung perusahaan (data residency)', signals: { data_residency: 4, on_prem: 3, regulated: 2 }, scores: { outposts: 14 } },
+                { label: 'Banyak lokasi terpencil tanpa internet stabil', signals: { edge: 4, disconnected: 3, portable: 2 }, scores: { snowcone: 12, snowball: 6 } }
+            ]
+        },
+        {
+            id: 'q11',
+            dim: 'Proyek migrasi',
+            text: 'Apakah perusahaan Anda sedang atau akan menjalankan <strong>proyek migrasi</strong> besar?',
+            options: [
+                { label: 'Tidak ada migrasi besar—optimasi storage yang sudah ada', signals: {}, scores: {} },
+                { label: 'Sinkronisasi/copy file berkala dari server lokal ke cloud', signals: { sync: 4, scheduled: 2, migration_file: 2 }, scores: { datasync: 14 } },
+                { label: 'Migrasi seluruh server/VM ke AWS (lift-and-shift)', signals: { server_migration: 4, lift_shift: 3, vmware: 2, replication: 2 }, scores: { mgn: 14, cloudendure: 5 } },
+                { label: 'Memindahkan puluhan+ PB dari data center lama (koneksi terbatas)', signals: { massive_data: 3, migration_bulk: 3, offline_transfer: 3 }, scores: { snowball: 12, snowmobile: 10 } }
+            ]
+        },
+        {
+            id: 'q12',
+            dim: 'Disaster recovery',
+            text: 'Kebutuhan <strong>pemulihan bencana (DR)</strong> perusahaan Anda?',
+            options: [
+                { label: 'Tidak prioritas—backup harian/mingguan sudah cukup', signals: { backup_policy: 1 }, scores: { aws_backup: 8, s3: 3 } },
+                { label: 'Backup terpusat lintas banyak layanan & akun AWS', signals: { backup_policy: 3, multi_account: 2 }, scores: { aws_backup: 14 } },
+                { label: 'Failover ke AWS dalam menit saat DC utama lumpuh', signals: { dr_critical: 4, low_rto: 3, failover: 3, replication: 2 }, scores: { cloudendure: 14 } },
+                { label: 'DR belum direncanakan / masih evaluasi awal', signals: {}, scores: { aws_backup: 5 } }
+            ]
+        },
+        {
+            id: 'q13',
+            dim: 'Integrasi eksternal',
+            text: 'Apakah <strong>mitra, vendor, atau regulator</strong> perlu mengunggah/mengunduh file ke sistem Anda secara mandiri?',
+            options: [
+                { label: 'Ya, wajib via SFTP/FTPS/FTP—banyak pihak eksternal', signals: { sftp: 4, b2b: 3, external_upload: 3 }, scores: { transfer_family: 14 } },
+                { label: 'Ya, tapi cukup portal web atau API (bukan protokol file legacy)', signals: { cloud_native: 1 }, scores: { s3: 10 } },
+                { label: 'Jarang / internal saja', signals: {}, scores: {} },
+                { label: 'Tidak sama sekali', signals: {}, scores: {} }
+            ]
+        },
+        {
+            id: 'q14',
+            dim: 'Infrastruktur legacy',
+            text: 'Infrastruktur storage <strong>legacy</strong> apa yang masih dipakai di perusahaan Anda?',
+            options: [
+                { label: 'Tidak ada legacy signifikan / sudah cloud-native', signals: { cloud_native: 2 }, scores: { s3: 6, ebs: 5 } },
+                { label: 'NAS Windows / file server SMB + Active Directory', signals: { smb: 2, windows: 2, ad: 2 }, scores: { fsx_windows: 10, fsx_file_gateway: 6 } },
+                { label: 'NetApp ONTAP atau SAN enterprise multi-protokol', signals: { netapp: 4, enterprise: 2 }, scores: { fsx_ontap: 14 } },
+                { label: 'OpenZFS, tape backup, atau iSCSI SAN lokal', signals: { openzfs: 2, tape: 2, iscsi: 2 }, scores: { fsx_openzfs: 8, tape_gateway: 10, volume_gateway: 8 } }
+            ]
+        },
+        {
+            id: 'q15',
+            dim: 'Prioritas keputusan',
+            text: 'Saat memilih solusi storage, <strong>prioritas nomor satu</strong> perusahaan Anda adalah?',
+            options: [
+                { label: 'Performa & latency (pengalaman aplikasi/user)', signals: { low_latency: 2, high_iops: 1 }, scores: { ebs: 8, fsx_lustre: 6, efs: 4 } },
+                { label: 'Biaya per GB seminimal mungkin', signals: { cost_priority: 3 }, scores: { glacier: 10, s3: 8 } },
+                { label: 'Kepatuhan regulasi & audit trail', signals: { compliance: 3, regulated: 2 }, scores: { aws_backup: 8, glacier: 8, outposts: 6 } },
+                { label: 'Kemudahan migrasi tanpa ubah aplikasi (time-to-value)', signals: { migration_file: 2, legacy_app: 2, hybrid: 2 }, scores: { datasync: 8, mgn: 8, s3_file_gateway: 8, fsx_openzfs: 6 } }
+            ]
+        }
+    ];
+
+    const SUPPLEMENT_RULES = [
+        { ifSignal: 'backup_policy', min: 2, service: 'aws_backup', reason: 'Kebutuhan backup terpusat lintas layanan AWS.' },
+        { ifSignal: 'dr_critical', min: 2, service: 'cloudendure', reason: 'DR dengan RTO ketat memerlukan replikasi kontinu.' },
+        { ifSignal: 'hybrid', min: 3, service: 'datasync', reason: 'Lingkungan hybrid sering butuh sinkronisasi data terjadwal.' },
+        { ifSignal: 'sftp', min: 2, service: 'transfer_family', reason: 'Integrasi mitra via SFTP/FTPS.' },
+        { ifSignal: 'server_migration', min: 2, service: 'mgn', reason: 'Proyek migrasi server ke AWS.' },
+        { ifSignal: 'archive', min: 3, service: 'glacier', reason: 'Sebagian data cocok di tier arsip murah (sering via S3 Lifecycle).' }
+    ];
+
+    function buildForm() {
+        const form = document.getElementById('decisionForm');
+        QUESTIONS.forEach((q, i) => {
+            const card = document.createElement('div');
+            card.className = 'quiz-card';
+            card.innerHTML = `
+                <span class="question-dim">${q.dim}</span>
+                <div class="question-num">Pertanyaan ${i + 1} dari ${QUESTIONS.length} — perusahaan Anda</div>
+                <div class="question-text">${q.text}</div>
+                <div class="options-container">
+                    ${q.options.map((opt, j) => `
+                        <label class="option-label">
+                            <input type="radio" name="${q.id}" value="${j}" required>
+                            <span>${opt.label}</span>
+                        </label>
+                    `).join('')}
+                </div>
+            `;
+            form.appendChild(card);
+        });
+    }
+
+    const STORAGE_KEY = 'aws_storage_decision_maker_v1';
+    const COMPANIES_JSON_FILE = 'companies.json';
+
+    let appStore = { companies: [], lastActiveId: null };
+    let companiesJsonLoaded = false;
+
+    function loadStoreLocal() {
+        try {
+            const raw = localStorage.getItem(STORAGE_KEY);
+            if (!raw) return { companies: [], lastActiveId: null };
+            const data = JSON.parse(raw);
+            return {
+                companies: Array.isArray(data.companies) ? data.companies : [],
+                lastActiveId: data.lastActiveId || null
+            };
+        } catch {
+            return { companies: [], lastActiveId: null };
+        }
+    }
+
+    function persistStoreLocal(store) {
+        try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
+        } catch (e) {
+            console.warn('Gagal menyimpan ke localStorage:', e);
+        }
+    }
+
+    function getStore() {
+        return appStore;
+    }
+
+    function loadStore() {
+        return getStore();
+    }
+
+    function mergeStores(local, shared) {
+        const map = new Map();
+        (shared.companies || []).forEach(c => map.set(c.id, c));
+        (local.companies || []).forEach(c => {
+            const prev = map.get(c.id);
+            if (!prev || new Date(c.savedAt) > new Date(prev.savedAt)) {
+                map.set(c.id, c);
+            }
+        });
+        const companies = Array.from(map.values()).sort(
+            (a, b) => new Date(b.savedAt) - new Date(a.savedAt)
+        );
+        let lastActiveId = local.lastActiveId || shared.lastActiveId || null;
+        if (lastActiveId && !companies.some(c => c.id === lastActiveId)) {
+            lastActiveId = companies[0] ? companies[0].id : null;
+        }
+        return { companies, lastActiveId };
+    }
+
+    function toCompaniesJsonPayload(store) {
+        return {
+            companies: store.companies || [],
+            lastActiveId: store.lastActiveId || null,
+            updatedAt: new Date().toISOString()
+        };
+    }
+
+    async function fetchCompaniesJsonFile() {
+        const url = COMPANIES_JSON_FILE + '?t=' + Date.now();
+        const res = await fetch(url, { cache: 'no-store' });
+        if (!res.ok) throw new Error('companies.json not found');
+        const data = await res.json();
+        return {
+            companies: Array.isArray(data.companies) ? data.companies : [],
+            lastActiveId: data.lastActiveId || null
+        };
+    }
+
+    async function refreshAppStore() {
+        const local = loadStoreLocal();
+        let fromJson = { companies: [], lastActiveId: null };
+        if (location.protocol === 'file:') {
+            companiesJsonLoaded = false;
+        } else {
+            try {
+                fromJson = await fetchCompaniesJsonFile();
+                companiesJsonLoaded = true;
+            } catch {
+                companiesJsonLoaded = false;
+            }
+        }
+        appStore = mergeStores(local, fromJson);
+        persistStoreLocal(appStore);
+        return appStore;
+    }
+
+    function persistStore(store) {
+        appStore = store;
+        persistStoreLocal(store);
+        updateSyncStatus();
+    }
+
+    function updateSyncStatus() {
+        const el = document.getElementById('sync-status');
+        if (!el) return;
+        const n = appStore.companies.length;
+        if (location.protocol === 'file:') {
+            el.className = 'sync-status warn';
+            el.innerHTML =
+                '<strong>Mode file lokal</strong> · ' + n + ' perusahaan di browser. ' +
+                'Deploy ke Netlify (index.html + companies.json) agar file JSON ikut terbaca.';
+            return;
+        }
+        el.className = 'sync-status ok';
+        let msg = '<strong>Netlify / static</strong> · ' + n + ' perusahaan tersimpan di browser (reload tetap ada).';
+        if (companiesJsonLoaded) {
+            msg += ' File <strong>companies.json</strong> ikut dibaca saat buka situs.';
+        } else {
+            msg += ' Upload <strong>companies.json</strong> ke folder deploy yang sama dengan index.html.';
+        }
+        msg += ' Sinkron antar HP: <strong>Unduh companies.json</strong> → ganti file di Netlify → deploy ulang.';
+        el.innerHTML = msg;
+    }
+
+    function downloadCompaniesJson() {
+        const blob = new Blob(
+            [JSON.stringify(toCompaniesJsonPayload(appStore), null, 2)],
+            { type: 'application/json' }
+        );
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = COMPANIES_JSON_FILE;
+        a.click();
+        URL.revokeObjectURL(url);
+    }
+
+    function exportBackupJson() {
+        downloadCompaniesJson();
+    }
+
+    function importBackupJson(file) {
+        const reader = new FileReader();
+        reader.onload = () => {
+            try {
+                const data = JSON.parse(reader.result);
+                if (!Array.isArray(data.companies)) {
+                    alert('File JSON tidak valid.');
+                    return;
+                }
+                const store = {
+                    companies: data.companies,
+                    lastActiveId: data.lastActiveId || null
+                };
+                persistStore(store);
+                updateSyncStatus();
+                renderSavedList();
+                alert('Import berhasil: ' + store.companies.length + ' perusahaan.');
+            } catch {
+                alert('Gagal membaca file JSON.');
+            }
+        };
+        reader.readAsText(file);
+    }
+
+    function getFormAnswers() {
+        const answers = {};
+        QUESTIONS.forEach(q => {
+            const selected = document.querySelector(`input[name="${q.id}"]:checked`);
+            if (selected) answers[q.id] = selected.value;
+        });
+        return answers;
+    }
+
+    function setFormAnswers(answers) {
+        QUESTIONS.forEach(q => {
+            const val = answers[q.id];
+            if (val === undefined) return;
+            const input = document.querySelector(`input[name="${q.id}"][value="${val}"]`);
+            if (input) input.checked = true;
+        });
+    }
+
+    function makeEntryId(companyName) {
+        const n = (companyName || '').trim().toLowerCase();
+        if (n) return 'co-' + n.replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 100);
+        return 'co-anon-' + Date.now();
+    }
+
+    function formatSavedDate(iso) {
+        try {
+            return new Date(iso).toLocaleString('id-ID', {
+                day: 'numeric', month: 'short', year: 'numeric',
+                hour: '2-digit', minute: '2-digit'
+            });
+        } catch {
+            return iso || '';
+        }
+    }
+
+    function saveAnalysis(entryData) {
+        refreshAppStore();
+        const store = {
+            companies: [...appStore.companies],
+            lastActiveId: appStore.lastActiveId
+        };
+        const entry = {
+            id: entryData.id,
+            companyName: entryData.companyName,
+            answers: entryData.answers,
+            primaryKey: entryData.primaryKey,
+            profileId: entryData.profileId,
+            profileName: entryData.profileName,
+            savedAt: new Date().toISOString()
+        };
+        const idx = store.companies.findIndex(c => c.id === entry.id);
+        if (idx >= 0) store.companies[idx] = entry;
+        else store.companies.unshift(entry);
+        store.lastActiveId = entry.id;
+        persistStore(store);
+        updateSyncStatus();
+    }
+
+    function resolvePrimaryKey(profile, serviceScores) {
+        let primaryKey = profile.service;
+        const profileServiceScore = serviceScores[primaryKey] || 0;
+        const topService = getRankedServices(serviceScores, null)[0];
+        if (topService && topService[1] > profileServiceScore + 8) {
+            primaryKey = topService[0];
+        }
+        return primaryKey;
+    }
+
+    function collectAnswers() {
+        const signals = {};
+        const serviceScores = {};
+        Object.keys(SERVICES).forEach(k => { serviceScores[k] = 0; });
+
+        QUESTIONS.forEach(q => {
+            const selected = document.querySelector(`input[name="${q.id}"]:checked`);
+            if (!selected) return;
+            const opt = q.options[parseInt(selected.value, 10)];
+            Object.entries(opt.signals || {}).forEach(([k, v]) => {
+                signals[k] = (signals[k] || 0) + v;
+            });
+            Object.entries(opt.scores || {}).forEach(([k, v]) => {
+                serviceScores[k] = (serviceScores[k] || 0) + v;
+            });
+        });
+        return { signals, serviceScores };
+    }
+
+    function displayResults(profile, primaryKey, signals, serviceScores, companyLabel, scrollToResult) {
+        const svc = SERVICES[primaryKey];
+        if (!svc) return;
+
+        document.getElementById('profile-name').textContent = profile.name;
+        document.getElementById('profile-desc').textContent =
+            companyLabel + ' — ' + profile.description;
+
+        const traits = getActiveTraits(signals, profile);
+        document.getElementById('profile-traits').innerHTML =
+            traits.map(t => `<span class="trait-pill">${t}</span>`).join('');
+
+        document.getElementById('result-title').textContent = svc.name;
+        document.getElementById('result-summary').textContent = svc.summary;
+        document.getElementById('result-verdict').textContent =
+            companyLabel + ' harus memakai ' + svc.short + '.';
+
+        renderStorageRadar(signals, primaryKey, companyLabel);
+
+        document.getElementById('result-why').textContent =
+            'Berdasarkan 15 jawaban tentang perusahaan Anda, profil "' + profile.name + '" paling dominan. ' + svc.why;
+
+        document.getElementById('result-tags').innerHTML =
+            svc.tags.map(t => `<span class="match-tag">${t}</span>`).join('');
+
+        document.getElementById('result-next').innerHTML =
+            svc.next.map(n => `<li>${n}</li>`).join('');
+
+        const supplements = getSupplements(signals, primaryKey);
+        const suppSection = document.getElementById('supplement-section');
+        const suppEl = document.getElementById('result-supplements');
+        if (supplements.length > 0) {
+            suppSection.style.display = 'block';
+            suppEl.innerHTML = supplements.map(s =>
+                `<div class="alt-card"><div><strong>${s.name}</strong><br><span style="color:#545b64;font-size:13px;">${s.reason}</span></div></div>`
+            ).join('');
+        } else {
+            suppSection.style.display = 'none';
+        }
+
+        const altsEl = document.getElementById('result-alts');
+        altsEl.innerHTML = '';
+        getRankedServices(serviceScores, primaryKey).slice(0, 3).forEach(([key, score], idx) => {
+            const alt = SERVICES[key];
+            if (!alt) return;
+            const div = document.createElement('div');
+            div.className = 'alt-card';
+            div.innerHTML = `
+                <span class="alt-rank">${idx + 2}</span>
+                <div>
+                    <strong>${alt.name}</strong><br>
+                    <span style="color:#545b64;font-size:13px;">Skor kecocokan ${score} — ${alt.summary}</span>
+                </div>
+            `;
+            altsEl.appendChild(div);
+        });
+
+        document.getElementById('result-panel').style.display = 'block';
+        if (scrollToResult) {
+            document.getElementById('result-panel').scrollIntoView({ behavior: 'smooth' });
+        }
+    }
+
+    function restoreSavedEntry(entry, scrollToResult) {
+        const displayName = entry.companyName === 'Perusahaan tanpa nama' ? '' : entry.companyName;
+        document.getElementById('companyName').value = displayName;
+        setFormAnswers(entry.answers);
+
+        const { signals, serviceScores } = collectAnswers();
+        let profile = COMPANY_PROFILES.find(p => p.id === entry.profileId);
+        if (!profile) profile = detectCompanyProfile(signals);
+
+        const primaryKey = resolvePrimaryKey(profile, serviceScores);
+        const companyLabel = displayName || 'Perusahaan Anda';
+
+        displayResults(profile, primaryKey, signals, serviceScores, companyLabel, scrollToResult);
+
+        const store = getStore();
+        store.lastActiveId = entry.id;
+        persistStore(store);
+        updateSyncStatus();
+    }
+
+    function clearWorkspaceState() {
+        document.getElementById('companyName').value = '';
+        document.getElementById('result-panel').style.display = 'none';
+        document.getElementById('error-msg').style.display = 'none';
+        QUESTIONS.forEach(q => {
+            document.querySelectorAll(`input[name="${q.id}"]`).forEach(inp => {
+                inp.checked = false;
+            });
+        });
+    }
+
+    function scoreProfile(profile, signals) {
+        return Object.entries(profile.weights).reduce((sum, [key, weight]) => {
+            return sum + (signals[key] || 0) * weight;
+        }, 0);
+    }
+
+    function detectCompanyProfile(signals) {
+        const ranked = COMPANY_PROFILES
+            .map(p => ({ profile: p, score: scoreProfile(p, signals) }))
+            .sort((a, b) => b.score - a.score);
+        return ranked[0].score > 0 ? ranked[0].profile : COMPANY_PROFILES[1];
+    }
+
+    function getActiveTraits(signals, profile) {
+        const traitMap = {
+            block: 'Block storage',
+            object: 'Object / API',
+            nfs: 'Protokol NFS',
+            smb: 'Protokol SMB',
+            hybrid: 'Hybrid on-prem + cloud',
+            archive: 'Data arsip',
+            hpc: 'HPC / komputasi paralel',
+            ml: 'Machine learning',
+            high_iops: 'IOPS tinggi',
+            data_residency: 'Data residency',
+            edge: 'Operasi edge',
+            sftp: 'Integrasi SFTP',
+            server_migration: 'Migrasi server',
+            dr_critical: 'DR kritis',
+            compliance: 'Compliance / regulasi',
+            netapp: 'Lingkungan NetApp',
+            openzfs: 'Lingkungan OpenZFS',
+            massive_data: 'Dataset masif (PB+)'
+        };
+        const fromSignals = Object.entries(signals)
+            .filter(([, v]) => v >= 2)
+            .map(([k]) => traitMap[k])
+            .filter(Boolean);
+        const combined = [...new Set([...profile.traits.slice(0, 3), ...fromSignals])];
+        return combined.slice(0, 8);
+    }
+
+    function getRankedServices(serviceScores, excludeKey) {
+        return Object.entries(serviceScores)
+            .filter(([k, v]) => v > 0 && k !== excludeKey)
+            .sort((a, b) => b[1] - a[1]);
+    }
+
+    const RADAR_AXES = [
+        { key: 'performance', label: 'Performa', signals: ['high_iops', 'low_latency', 'high_throughput', 'hot_access'], cap: 14 },
+        { key: 'scale', label: 'Skala data', signals: ['scale_unlimited', 'massive_data', 'large_data', 'medium_data', 'pb_scale'], cap: 12 },
+        { key: 'cost', label: 'Efisiensi biaya', signals: ['cost_priority', 'archive', 'infrequent_access', 'transient'], cap: 10 },
+        { key: 'durability', label: 'Durability', signals: ['compliance', 'dr_critical', 'backup_policy', 'regulated'], cap: 12 },
+        { key: 'shared', label: 'Akses bersama', signals: ['shared', 'nfs', 'smb', 'parallel', 'multi_az'], cap: 14 },
+        { key: 'hybrid', label: 'Hybrid / Edge', signals: ['hybrid', 'on_prem', 'edge', 'data_residency', 'disconnected'], cap: 14 },
+        { key: 'cloudNative', label: 'Cloud-native', signals: ['object', 'cloud_native', 'analytics'], cap: 10 },
+        { key: 'migration', label: 'Migrasi & DR', signals: ['server_migration', 'sync', 'migration_bulk', 'low_rto', 'failover', 'replication'], cap: 16 }
+    ];
+
+    const SERVICE_RADAR_PROFILE = {
+        ebs: { performance: 95, scale: 42, cost: 38, durability: 85, shared: 28, hybrid: 32, cloudNative: 22, migration: 55 },
+        s3: { performance: 58, scale: 98, cost: 78, durability: 90, shared: 52, hybrid: 58, cloudNative: 98, migration: 62 },
+        glacier: { performance: 18, scale: 95, cost: 96, durability: 94, shared: 20, hybrid: 40, cloudNative: 75, migration: 45 },
+        efs: { performance: 62, scale: 72, cost: 55, durability: 82, shared: 88, hybrid: 45, cloudNative: 68, migration: 58 },
+        fsx_lustre: { performance: 92, scale: 80, cost: 48, durability: 75, shared: 90, hybrid: 38, cloudNative: 55, migration: 50 },
+        fsx_ontap: { performance: 78, scale: 75, cost: 42, durability: 88, shared: 85, hybrid: 70, cloudNative: 45, migration: 72 },
+        fsx_openzfs: { performance: 70, scale: 68, cost: 52, durability: 80, shared: 82, hybrid: 55, cloudNative: 48, migration: 65 },
+        fsx_windows: { performance: 65, scale: 70, cost: 50, durability: 84, shared: 92, hybrid: 62, cloudNative: 40, migration: 60 },
+        snowcone: { performance: 45, scale: 35, cost: 55, durability: 70, shared: 40, hybrid: 88, cloudNative: 50, migration: 48 },
+        snowball: { performance: 50, scale: 85, cost: 60, durability: 75, shared: 35, hybrid: 90, cloudNative: 45, migration: 82 },
+        snowmobile: { performance: 40, scale: 99, cost: 65, durability: 80, shared: 25, hybrid: 95, cloudNative: 40, migration: 95 },
+        outposts: { performance: 80, scale: 65, cost: 35, durability: 92, shared: 70, hybrid: 96, cloudNative: 75, migration: 68 },
+        s3_file_gateway: { performance: 55, scale: 82, cost: 72, durability: 88, shared: 75, hybrid: 92, cloudNative: 85, migration: 55 },
+        fsx_file_gateway: { performance: 60, scale: 72, cost: 58, durability: 83, shared: 90, hybrid: 94, cloudNative: 42, migration: 58 },
+        volume_gateway: { performance: 72, scale: 58, cost: 55, durability: 86, shared: 45, hybrid: 88, cloudNative: 35, migration: 75 },
+        tape_gateway: { performance: 25, scale: 80, cost: 88, durability: 90, shared: 30, hybrid: 75, cloudNative: 50, migration: 70 },
+        datasync: { performance: 52, scale: 78, cost: 70, durability: 72, shared: 65, hybrid: 85, cloudNative: 72, migration: 88 },
+        transfer_family: { performance: 48, scale: 75, cost: 68, durability: 78, shared: 55, hybrid: 70, cloudNative: 80, migration: 52 },
+        mgn: { performance: 58, scale: 72, cost: 55, durability: 80, shared: 40, hybrid: 78, cloudNative: 45, migration: 96 },
+        aws_backup: { performance: 50, scale: 70, cost: 62, durability: 95, shared: 45, hybrid: 60, cloudNative: 55, migration: 85 },
+        cloudendure: { performance: 62, scale: 68, cost: 48, durability: 94, shared: 42, hybrid: 72, cloudNative: 48, migration: 98 }
+    };
+
+    function computeCompanyRadar(signals) {
+        return RADAR_AXES.map(axis => {
+            let sum = 0;
+            axis.signals.forEach(s => { sum += signals[s] || 0; });
+            return Math.min(100, Math.round((sum / axis.cap) * 100));
+        });
+    }
+
+    function getServiceRadar(primaryKey) {
+        const p = SERVICE_RADAR_PROFILE[primaryKey];
+        if (!p) return RADAR_AXES.map(() => 50);
+        return RADAR_AXES.map(axis => p[axis.key] ?? 50);
+    }
+
+    function renderStorageRadar(signals, primaryKey, companyLabel) {
+        const svg = document.getElementById('storageRadarChart');
+        const legend = document.getElementById('radarLegend');
+        const svc = SERVICES[primaryKey];
+        if (!svg || !svc) return;
+
+        const companyVals = computeCompanyRadar(signals);
+        const serviceVals = getServiceRadar(primaryKey);
+        const n = RADAR_AXES.length;
+        const cx = 210;
+        const cy = 210;
+        const maxR = 130;
+        const labelR = 158;
+        const levels = [20, 40, 60, 80, 100];
+
+        function point(i, value, rScale) {
+            const angle = (Math.PI * 2 * i) / n - Math.PI / 2;
+            const r = (value / 100) * maxR * (rScale || 1);
+            return {
+                x: cx + r * Math.cos(angle),
+                y: cy + r * Math.sin(angle)
+            };
+        }
+
+        function polygonPoints(values) {
+            return values.map((v, i) => {
+                const p = point(i, v);
+                return `${p.x.toFixed(1)},${p.y.toFixed(1)}`;
+            }).join(' ');
+        }
+
+        let gridHtml = '';
+        levels.forEach(level => {
+            const pts = RADAR_AXES.map((_, i) => {
+                const p = point(i, level);
+                return `${p.x.toFixed(1)},${p.y.toFixed(1)}`;
+            }).join(' ');
+            gridHtml += `<polygon points="${pts}" fill="none" stroke="#dde1e4" stroke-width="1"/>`;
+        });
+
+        let axesHtml = '';
+        RADAR_AXES.forEach((axis, i) => {
+            const end = point(i, 100);
+            const lp = point(i, 100, labelR / maxR);
+            const lx = lp.x;
+            const ly = lp.y;
+            let anchor = 'middle';
+            if (lx < cx - 20) anchor = 'end';
+            else if (lx > cx + 20) anchor = 'start';
+            axesHtml += `<line x1="${cx}" y1="${cy}" x2="${end.x.toFixed(1)}" y2="${end.y.toFixed(1)}" stroke="#aab7c4" stroke-width="1"/>`;
+            axesHtml += `<text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" text-anchor="${anchor}" dominant-baseline="middle" font-size="11" fill="#545b64" font-family="Segoe UI,sans-serif">${axis.label}</text>`;
+        });
+
+        levels.forEach(level => {
+            if (level % 40 !== 0) return;
+            const p = point(0, level);
+            gridHtml += `<text x="${p.x + 4}" y="${p.y}" font-size="9" fill="#879596" font-family="Segoe UI,sans-serif">${level}</text>`;
+        });
+
+        svg.innerHTML = `
+            <rect width="420" height="420" fill="#fafbfc" rx="8"/>
+            ${gridHtml}
+            ${axesHtml}
+            <polygon points="${polygonPoints(companyVals)}" fill="rgba(9,114,211,0.22)" stroke="#0972d3" stroke-width="2.5" stroke-linejoin="round"/>
+            <polygon points="${polygonPoints(serviceVals)}" fill="rgba(255,153,0,0.38)" stroke="#232f3e" stroke-width="2" stroke-linejoin="round"/>
+            <circle cx="${cx}" cy="${cy}" r="3" fill="#545b64"/>
+        `;
+
+        legend.innerHTML = `
+            <div class="radar-legend-item">
+                <span class="radar-legend-swatch company"></span>
+                <span><strong>Profil perusahaan</strong><br><span style="color:#545b64;font-size:12px;">${companyLabel}</span></span>
+            </div>
+            <div class="radar-legend-item">
+                <span class="radar-legend-swatch service"></span>
+                <span><strong>Layanan direkomendasikan</strong><br><span style="color:#545b64;font-size:12px;">${svc.short}</span></span>
+            </div>
+        `;
+    }
+
+    function getSupplements(signals, primaryKey) {
+        const list = [];
+        SUPPLEMENT_RULES.forEach(rule => {
+            if ((signals[rule.ifSignal] || 0) >= rule.min && rule.service !== primaryKey) {
+                const svc = SERVICES[rule.service];
+                if (svc) list.push({ service: rule.service, name: svc.short, reason: rule.reason });
+            }
+        });
+        const seen = new Set();
+        return list.filter(item => {
+            if (seen.has(item.service)) return false;
+            seen.add(item.service);
+            return true;
+        }).slice(0, 4);
+    }
+
+    function renderResult() {
+        const unanswered = QUESTIONS.filter(q => !document.querySelector(`input[name="${q.id}"]:checked`));
+        const err = document.getElementById('error-msg');
+        if (unanswered.length > 0) {
+            err.style.display = 'block';
+            err.textContent = `Silakan jawab semua pertanyaan tentang perusahaan Anda (${unanswered.length} belum dijawab).`;
+            document.getElementById('result-panel').style.display = 'none';
+            return;
+        }
+        err.style.display = 'none';
+
+        const answers = getFormAnswers();
+        const { signals, serviceScores } = collectAnswers();
+        const profile = detectCompanyProfile(signals);
+        const primaryKey = resolvePrimaryKey(profile, serviceScores);
+
+        const companyName = document.getElementById('companyName').value.trim();
+        const companyLabel = companyName || 'Perusahaan Anda';
+        const storedName = companyName || 'Perusahaan tanpa nama';
+
+        displayResults(profile, primaryKey, signals, serviceScores, companyLabel, true);
+
+        saveAnalysis({
+            id: makeEntryId(companyName),
+            companyName: storedName,
+            answers,
+            primaryKey,
+            profileId: profile.id,
+            profileName: profile.name
+        });
+    }
+
+    function renderSavedList() {
+        const container = document.getElementById('savedList');
+        const store = getStore();
+        if (store.companies.length === 0) {
+            container.innerHTML = '<p class="saved-empty">Belum ada analisis tersimpan.<br>Isi kuesioner lalu klik <strong>Analisis Perusahaan Saya</strong>.</p>';
+            return;
+        }
+        container.innerHTML = '<div class="case-list">' + store.companies.map(entry => {
+            const svc = SERVICES[entry.primaryKey];
+            const short = svc ? svc.short : entry.primaryKey;
+            const active = store.lastActiveId === entry.id ? ' · terakhir dibuka' : '';
+            return `
+                <div class="case-item saved-item" data-saved-id="${entry.id}" role="button" tabindex="0">
+                    <div>
+                        <div class="case-name">${entry.companyName}</div>
+                        <div class="case-sector">${entry.profileName || 'Profil storage'}</div>
+                        <div class="saved-item-date">${formatSavedDate(entry.savedAt)}${active}</div>
+                    </div>
+                    <span class="case-storage-badge">${short}</span>
+                    <span class="arrow">→</span>
+                </div>
+            `;
+        }).join('') + '</div>';
+
+        container.querySelectorAll('.saved-item').forEach(el => {
+            const open = () => {
+                const entry = getStore().companies.find(c => c.id === el.getAttribute('data-saved-id'));
+                if (!entry) return;
+                closeSavedModal();
+                restoreSavedEntry(entry, true);
+            };
+            el.addEventListener('click', open);
+            el.addEventListener('keydown', e => {
+                if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); }
+            });
+        });
+    }
+
+    async function openSavedModal() {
+        await refreshAppStore();
+        updateSyncStatus();
+        renderSavedList();
+        const modal = document.getElementById('savedModal');
+        modal.classList.add('open');
+        modal.setAttribute('aria-hidden', 'false');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeSavedModal() {
+        const modal = document.getElementById('savedModal');
+        modal.classList.remove('open');
+        modal.setAttribute('aria-hidden', 'true');
+        if (!document.getElementById('caseModal').classList.contains('open') &&
+            !document.getElementById('learnModal').classList.contains('open')) {
+            document.body.style.overflow = '';
+        }
+    }
+
+    const LIST_BTN_HOVER_DELAY_MS = 5000;
+    const mainActionGroup = document.querySelector('.main-action-group');
+    const btnSubmitEl = document.getElementById('btnSubmit');
+    const btnListCompaniesEl = document.getElementById('btnListCompanies');
+    let listBtnRevealTimer = null;
+
+    function clearListBtnRevealTimer() {
+        if (listBtnRevealTimer) {
+            clearTimeout(listBtnRevealTimer);
+            listBtnRevealTimer = null;
+        }
+    }
+
+    function revealListButton() {
+        btnListCompaniesEl.classList.add('is-revealed');
+    }
+
+    function hideListButton() {
+        clearListBtnRevealTimer();
+        btnListCompaniesEl.classList.remove('is-revealed');
+    }
+
+    btnSubmitEl.addEventListener('mouseenter', () => {
+        if (btnListCompaniesEl.classList.contains('is-revealed')) return;
+        clearListBtnRevealTimer();
+        listBtnRevealTimer = setTimeout(revealListButton, LIST_BTN_HOVER_DELAY_MS);
+    });
+
+    btnSubmitEl.addEventListener('mouseleave', e => {
+        const next = e.relatedTarget;
+        if (next && (next === btnListCompaniesEl || btnListCompaniesEl.contains(next))) return;
+        if (!btnListCompaniesEl.classList.contains('is-revealed')) clearListBtnRevealTimer();
+    });
+
+    mainActionGroup.addEventListener('mouseleave', e => {
+        const next = e.relatedTarget;
+        if (next && mainActionGroup.contains(next)) return;
+        hideListButton();
+    });
+
+    document.getElementById('btnSubmit').addEventListener('click', renderResult);
+    document.getElementById('btnListCompanies').addEventListener('click', openSavedModal);
+    document.getElementById('btnCloseSavedModal').addEventListener('click', closeSavedModal);
+    document.getElementById('savedModal').addEventListener('click', e => {
+        if (e.target.id === 'savedModal') closeSavedModal();
+    });
+
+    document.getElementById('btnReset').addEventListener('click', () => {
+        document.getElementById('decisionForm').reset();
+        document.getElementById('companyName').value = '';
+        document.getElementById('result-panel').style.display = 'none';
+        document.getElementById('error-msg').style.display = 'none';
+        const store = getStore();
+        store.lastActiveId = null;
+        persistStore(store);
+        updateSyncStatus();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+
+    document.getElementById('btnExportJson').addEventListener('click', exportBackupJson);
+    document.getElementById('btnImportJson').addEventListener('click', () => {
+        document.getElementById('importBackupInput').click();
+    });
+    document.getElementById('importBackupInput').addEventListener('change', e => {
+        const file = e.target.files && e.target.files[0];
+        if (file) importBackupJson(file);
+        e.target.value = '';
+    });
+
+    buildForm();
+    clearWorkspaceState();
+
+    window.addEventListener('pageshow', e => {
+        if (e.persisted) clearWorkspaceState();
+    });
+
+    (async function initAppStorage() {
+        await refreshAppStore();
+        updateSyncStatus();
+    })();
+
+    /* Dimensi sama dengan 15 pertanyaan kuesioner */
+    const REASON_DIMS = [
+        'Beban kerja utama',
+        'Model akses storage',
+        'Frekuensi akses',
+        'Performa IOPS & throughput',
+        'Protokol akses',
+        'Sharing & skala klien',
+        'Ukuran dataset',
+        'Kritisitas & regulasi',
+        'Umur & sifat data',
+        'Lokasi infrastruktur',
+        'Proyek migrasi',
+        'Disaster recovery',
+        'Integrasi eksternal',
+        'Infrastruktur legacy',
+        'Prioritas keputusan'
+    ];
+
+    const SIMULATION_CASES = [
+        {
+            id: 'bank-nusantara',
+            name: 'PT Bank Nusantara Digital',
+            sector: 'Perbankan / Fintech',
+            profile: 'Perusahaan Berbasis Database & Aplikasi Stateful',
+            service: 'ebs',
+            reasons: [
+                'Core banking Oracle dan PostgreSQL berjalan di EC2—bukan object atau file share.',
+                'Database membutuhkan disk block langsung ke OS (volume /dev/xvdf), bukan mount NFS.',
+                'Transaksi real-time diakses terus-menerus; latency di bawah 1 ms kritis.',
+                'Butuh provisioned IOPS tinggi (io2/gp3) untuk OLTP dan laporan harian.',
+                'Tidak ada kebutuhan SFTP mitra; akses purely internal ke volume block.',
+                'Umumnya satu primary DB per volume; sharing file tidak relevan untuk core banking.',
+                'Dataset operasional ~15 TB, growth terukur—cocok untuk volume EBS terpisah per DB.',
+                'Data sangat kritis; EBS snapshot + AWS Backup melengkapi, tetapi primary tetap block.',
+                'Mayoritas data aktif &lt; 90 hari; arsip dipisah ke S3/Glacier terpisah.',
+                'Infrastruktur sudah di AWS region; tidak hybrid file gateway untuk core DB.',
+                'Bukan proyek migrasi file massal—sudah cloud-native di EC2.',
+                'DR memakai replikasi DB; volume EBS adalah lapisan storage utama production.',
+                'Mitra tidak upload ke core banking via FTP.',
+                'Legacy SAN sudah diganti EC2+EBS; tidak NetApp/OpenZFS.',
+                'Prioritas nomor satu: performa & latency aplikasi perbankan.'
+            ]
+        },
+        {
+            id: 'datamart',
+            name: 'PT DataMart Marketplace',
+            sector: 'E-commerce / Digital Platform',
+            profile: 'Perusahaan Cloud-Native & Data Platform',
+            service: 's3',
+            reasons: [
+                'Aplikasi microservices, gambar produk, dan data lake analitik—cloud-native.',
+                'Akses via SDK/API S3 dan Athena/Glue, bukan block volume ke server tunggal.',
+                'Data hot (katalog) sering diakses; log & event bisa di-tier lebih murah.',
+                'Throughput read object tinggi; IOPS block tidak menjadi bottleneck utama.',
+                'Protokol HTTP/S3 API; tidak NFS/SMB untuk aplikasi utama.',
+                'Ribuan service membaca objek independen—bukan satu folder shared POSIX.',
+                'Estimasi 200 TB+ dalam 3 tahun—S3 scale unlimited tanpa provision capacity.',
+                'Backup dan versioning S3; compliance via bucket policy dan encryption.',
+                'Banyak log/clickstream transient; lifecycle ke IA/Glacier otomatis.',
+                '100% di AWS cloud; tidak ada kebutuhan Outposts atau gateway on-prem.',
+                'Migrasi dari on-prem sudah selesai; fokus optimasi bucket & prefix.',
+                'DR via cross-region replication S3, bukan DR mesin utuh.',
+                'Partner pakai API/presigned URL, bukan SFTP wajib.',
+                'Tidak ada NAS Windows/NetApp di path aplikasi utama.',
+                'Prioritas: skala elastis + biaya per GB via storage class & lifecycle.'
+            ]
+        },
+        {
+            id: 'arsip-regulasi',
+            name: 'PT Arsip Regulasi Indonesia',
+            sector: 'Jasa Keuangan / Compliance',
+            profile: 'Perusahaan Arsip & Retensi Regulasi',
+            service: 'glacier',
+            reasons: [
+                'Fungsi utama menyimpan dokumen kontrak & audit, bukan menjalankan aplikasi interaktif.',
+                'Data disimpan sebagai objek arsip; akses via restore job, bukan mount harian.',
+                'Akses hampir tidak pernah untuk data &gt; 2 tahun; restore bulanan cukup.',
+                'Tidak butuh IOPS tinggi—biaya per GB yang menentukan.',
+                'Tidak ada protokol NFS/SMB untuk user kantor ke arsip lama.',
+                'Tidak ada sharing file aktif; satu arsip = satu objek di bucket.',
+                'Volume 5 PB+ historis; Glacier Deep Archive paling ekonomis.',
+                'Regulasi OJK mewajibkan retensi 10 tahun—durability Glacier cocok.',
+                '100% data arsip multi-tahun; tidak ada workload hot di tier yang sama.',
+                'Cloud region saja; data tidak perlu di gedung kantor.',
+                'Migrasi arsip tape/DLT ke cloud via S3 kemudian lifecycle Glacier.',
+                'Backup = durability object; DR bukan failover menit.',
+                'Tidak ada upload SFTP harian dari mitra ke arsip ini.',
+                'Menggantikan physical tape library—alur serupa VTL/Glacier.',
+                'Prioritas utama: biaya penyimpanan seminimal mungkin per GB.'
+            ]
+        },
+        {
+            id: 'cloudnative-saas',
+            name: 'PT CloudNative SaaS Indonesia',
+            sector: 'SaaS / Software',
+            profile: 'Perusahaan dengan Shared File Linux',
+            service: 'efs',
+            reasons: [
+                'Platform SaaS berbasis container/Kubernetes di banyak AZ.',
+                'Pod perlu mount folder konfigurasi & upload user yang sama (shared file).',
+                'Akses file share intensif di jam kerja global.',
+                'Throughput file cukup tinggi tapi bukan HPC Lustre scale.',
+                'Protokol NFS wajib untuk Linux worker nodes.',
+                'Puluhan hingga ratusan pod concurrent mount EFS.',
+                'Data file ~30 TB dengan growth otomatis—EFS elastic capacity.',
+                'Multi-AZ resilience penting untuk SLA SaaS.',
+                'Data aktif dominan; cold tier via EFS Lifecycle ke IA.',
+                'Full AWS VPC; tidak hybrid SMB di kantor.',
+                'Migrasi dari NFS on-prem ke EFS via DataSync (pelengkap).',
+                'DR: backup EFS + multi-AZ; bukan Snow atau Outposts.',
+                'Tidak ada SFTP B2B ke file share produksi.',
+                'Dulu NAS Linux generik; bukan Windows/NetApp.',
+                'Prioritas: shared Linux scale-out tanpa kelola kapasitas manual.'
+            ]
+        },
+        {
+            id: 'biocompute',
+            name: 'PT BioCompute Riset Nusantara',
+            sector: 'Riset / HPC / Machine Learning',
+            profile: 'Perusahaan HPC / Riset & Machine Learning',
+            service: 'fsx_lustre',
+            reasons: [
+                'Pipeline genomics dan simulasi protein—komputasi paralel masif.',
+                'Ratusan node baca/tulis dataset sama secara POSIX parallel.',
+                'Batch job malam hari dengan I/O sequential & random tinggi.',
+                'Butuh throughput GB/s+, bukan sekadar IOPS database kecil.',
+                'POSIX-compliant mandatory untuk tools bioinformatics existing.',
+                'Cluster 200+ node akses filesystem yang sama simultan.',
+                'Dataset training 500 TB+ dengan scratch space cepat.',
+                'Hasil riset penting tetapi bukan transaksi finansial real-time.',
+                'Working set hot selama training; hasil final bisa ke S3.',
+                'Semua compute di AWS; Lustre di VPC yang sama.',
+                'Data repository link S3 → Lustre untuk cost-effective ingest.',
+                'DR: snapshot + S3 backup model; primary training di Lustre.',
+                'Tidak ada SFTP eksternal ke filesystem HPC.',
+                'Dulu cluster Lustre on-prem; lift ke FSx for Lustre.',
+                'Prioritas: throughput paralel maksimal untuk time-to-result riset.'
+            ]
+        },
+        {
+            id: 'manufaktur-maju',
+            name: 'PT Manufaktur Maju Indonesia',
+            sector: 'Manufaktur / Windows Enterprise',
+            profile: 'Perusahaan Hybrid Multi-Cabang',
+            service: 'fsx_file_gateway',
+            reasons: [
+                'ERP Windows dan 2.000 user di 8 pabrik butuh SMB cepat.',
+                'File authoritative di FSx for Windows cloud; cabang akses via gateway.',
+                'Akses dokumen ERP & share drive sepanjang shift produksi.',
+                'Latency &lt; 5 ms ke share lokal via cache gateway, bukan IOPS block DB.',
+                'Protokol SMB wajib; aplikasi tidak support S3 API.',
+                'Banyak user Windows concurrent ke share yang sama per site.',
+                '~180 TB file historis; FSx capacity + gateway cache.',
+                'Operasional pabrik kritis; Multi-AZ FSx untuk backend.',
+                'Data aktif di site; arsip tahun lalu bisa tiering.',
+                'Hybrid: on-prem pabrik + AWS cloud—definisi klasik gateway.',
+                'Migrasi file share NAS Windows ke FSx, gateway untuk UX lokal.',
+                'DR: FSx backup + optional CloudEndure untuk VM terpisah.',
+                'Vendor kadang email file; bukan core SFTP ke ERP.',
+                'Legacy: Windows File Server + AD di setiap pabrik.',
+                'Prioritas: pengalaman user SMB lokal tanpa refactor ERP.'
+            ]
+        },
+        {
+            id: 'rs-medika',
+            name: 'RS Medika Indonesia',
+            sector: 'Kesehatan / Regulated',
+            profile: 'Perusahaan Regulasi Data Residency',
+            service: 'outposts',
+            reasons: [
+                'Regulasi kesehatan: data pasien tidak boleh keluar gedung RS (residency).',
+                'Tetap butuh layanan AWS (EC2, RDS API) di lokasi fisik rumah sakit.',
+                'Akses rekam medis 24/7 dari sistem internal RS.',
+                'Latency ultra-rendah ke PACS dan EMR di jaringan lokal.',
+                'Protokol campuran internal; Outposts host VPC lokal.',
+                'Banyak sistem RS akses storage di rack yang sama.',
+                'Pertumbuhan ~50 TB/tahun—Outposts storage expandable.',
+                'Data pasien sangat sensitif & regulated—kontrol fisik + AWS managed.',
+                'Rekam medis aktif + arsip; tiering bisa ke S3 di Outpost.',
+                'Infrastruktur harus di gedung RS, bukan public region saja.',
+                'Migrasi dari server tower di basement ke Outposts rack.',
+                'DR bisa Outposts + backup ke region dengan enkripsi ketat.',
+                'Lab eksternal kirim hasil via portal, bukan SFTP massal.',
+                'Legacy: SAN lokal dan Windows server di RS.',
+                'Prioritas: compliance lokasi data di atas biaya cloud murni.'
+            ]
+        },
+        {
+            id: 'migas-geosurvey',
+            name: 'PT Migas GeoSurvey Energy',
+            sector: 'Energi / Migrasi Data Center',
+            profile: 'Perusahaan Migrasi Data Center Masif',
+            service: 'snowmobile',
+            reasons: [
+                'Menutup DC dengan 45 PB data seismik 3D—transfer online tidak feasible.',
+                'Data sebagai file besar; migrasi fisik lebih cepat dari 1 Gbps dedicated.',
+                'Setelah migrasi, akses jarang untuk arsip survei lama.',
+                'Tidak butuh IOPS production selama transit—butuh bandwidth migrasi.',
+                'Tidak protokol harian; one-time bulk move ke S3.',
+                'Tim geofisika tidak share live filesystem selama migrasi 6 bulan.',
+                '45 PB masuk kategori Snowmobile (truk 45 kaki), bukan Snowball saja.',
+                'Data aset strategis; chain-of-custody & enkripsi Snowmobile.',
+                'Mayoritas arsip historis eksplorasi; hot data kecil di AWS pasca-migrasi.',
+                'DC onshore akan ditutup; target S3 di region AWS.',
+                'Proyek migrasi tunggal terbesar dalam 5 tahun—definisi Snowmobile.',
+                'DR pasca-migrasi terpisah; fase ini fokus ingest PB.',
+                'Tidak SFTP; data dari tape/array ke Snowmobile.',
+                'Legacy: tape robot dan NAS besar di DC energi.',
+                'Prioritas: selesaikan migrasi PB dalam window proyek, bukan latency harian.'
+            ]
+        },
+        {
+            id: 'logistik-mitra',
+            name: 'PT Logistik Mitra Nusantara',
+            sector: 'Logistik / B2B',
+            profile: 'Perusahaan Integrasi File B2B',
+            service: 'transfer_family',
+            reasons: [
+                'Bisnis utama pertukaran dokumen customs dengan 180+ vendor.',
+                'Vendor wajib SFTP/FTPS—tidak mau API S3 presigned.',
+                'Upload batch malam hari; tidak real-time block I/O.',
+                'Throughput cukup; bottleneck di protokol standar industri.',
+                'SFTP/FTPS/FTP adalah requirement kontrak vendor.',
+                'Setiap vendor isolated home directory ke bucket/prefix S3.',
+                'Volume dokumen ~8 TB/tahun—S3 backend via Transfer Family.',
+                'Audit trail upload wajib untuk compliance bea cukai.',
+                'Dokumen disimpan 5 tahun; lifecycle S3 ke IA/Glacier.',
+                'Fully managed di AWS; tidak server FTP on-prem lagi.',
+                'Migrasi dari FTP server Linux tua ke Transfer Family managed.',
+                'DR: S3 cross-region; Transfer endpoint multi-AZ.',
+                'Ini adalah core integrasi eksternal perusahaan.',
+                'Legacy: vsftpd on-prem dengan maintenance tinggi.',
+                'Prioritas: protokol B2B standar tanpa kelola server FTP sendiri.'
+            ]
+        },
+        {
+            id: 'asuransi-migrasi',
+            name: 'PT Asuransi Migrasi Teknologi',
+            sector: 'Asuransi / IT Transformation',
+            profile: 'Perusahaan dalam Proyek Migrasi Server',
+            service: 'mgn',
+            reasons: [
+                'Memigrasikan 320 server VMware (klaim, polis, portal) ke EC2.',
+                'Replikasi kontinu OS+disk+app, bukan hanya copy folder file.',
+                'Cutover terjadwal per wave; minim downtime bisnis.',
+                'Performa staging cukup; bukan HPC file throughput.',
+                'Protokol aplikasi tetap sama pasca-migrasi di EC2; storage = EBS per VM.',
+                'Setiap VM = volume EBS setelah cutover; MGN handle replikasi dulu.',
+                'Total ~400 TB across VMs—MGN tidak peduli protokol file share.',
+                'Asuransi regulated; test cutover sebelum production.',
+                'Data campuran aktif; arsip VM bisa right-size post-migrasi.',
+                'DC Jakarta → AWS region Singapore.',
+                'Ini proyek definisi lift-and-shift 18 bulan.',
+                'Setelah MGN: CloudEndure/AWS Backup untuk DR layer.',
+                'SFTP mitra terpisah (bisa Transfer Family nanti).',
+                'Legacy: VMware + SAN; target EC2 + EBS.',
+                'Prioritas: migrasi server tanpa refactor aplikasi legacy.'
+            ]
+        }
+    ];
+
+    function renderCaseList() {
+        const list = document.getElementById('caseList');
+        list.innerHTML = SIMULATION_CASES.map(c => {
+            const svc = SERVICES[c.service];
+            const short = svc ? svc.short : c.service;
+            return `
+                <div class="case-item" data-case-id="${c.id}" role="button" tabindex="0">
+                    <div>
+                        <div class="case-name">${c.name}</div>
+                        <div class="case-sector">${c.sector}</div>
+                    </div>
+                    <span class="case-storage-badge">${short}</span>
+                    <span class="arrow">→</span>
+                </div>
+            `;
+        }).join('');
+
+        list.querySelectorAll('.case-item').forEach(el => {
+            const open = () => showCaseDetail(el.getAttribute('data-case-id'));
+            el.addEventListener('click', open);
+            el.addEventListener('keydown', e => {
+                if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); }
+            });
+        });
+    }
+
+    function showCaseList() {
+        document.getElementById('case-list-view').style.display = 'block';
+        document.getElementById('case-detail-view').style.display = 'none';
+        document.getElementById('btnBackList').style.display = 'none';
+        document.getElementById('modalTitle').textContent = '10 company example with different case';
+        document.getElementById('modalSub').textContent = 'Klik perusahaan untuk melihat rekomendasi storage dan 15 alasannya';
+    }
+
+    function showCaseDetail(caseId) {
+        const c = SIMULATION_CASES.find(x => x.id === caseId);
+        if (!c) return;
+        const svc = SERVICES[c.service];
+        if (!svc) return;
+
+        document.getElementById('case-list-view').style.display = 'none';
+        document.getElementById('case-detail-view').style.display = 'block';
+        document.getElementById('btnBackList').style.display = 'inline-block';
+        document.getElementById('modalTitle').textContent = c.name;
+        document.getElementById('modalSub').textContent = c.sector;
+
+        document.getElementById('caseDetailHero').innerHTML = `
+            <div class="company-name">${c.name}</div>
+            <p class="profile-line"><strong>Profil:</strong> ${c.profile}</p>
+            <p style="color:#d5dbdb;font-size:14px;margin-top:8px;">${svc.summary}</p>
+            <p class="verdict-line">${c.name} harus memakai ${svc.short}.</p>
+        `;
+
+        const ol = document.getElementById('caseReasonList');
+        ol.innerHTML = c.reasons.map((text, i) => `
+            <li class="reason-item">
+                <div class="reason-num">Alasan ${i + 1} · ${REASON_DIMS[i]}</div>
+                <div class="reason-text">${text}</div>
+            </li>
+        `).join('');
+
+        document.querySelector('.modal-body').scrollTop = 0;
+    }
+
+    function openCaseModal() {
+        const modal = document.getElementById('caseModal');
+        modal.classList.add('open');
+        modal.setAttribute('aria-hidden', 'false');
+        document.body.style.overflow = 'hidden';
+        showCaseList();
+    }
+
+    function closeCaseModal() {
+        const modal = document.getElementById('caseModal');
+        modal.classList.remove('open');
+        modal.setAttribute('aria-hidden', 'true');
+        if (!document.getElementById('learnModal').classList.contains('open') &&
+            !document.getElementById('savedModal').classList.contains('open')) {
+            document.body.style.overflow = '';
+        }
+        showCaseList();
+    }
+
+    document.getElementById('btnOpenCase').addEventListener('click', openCaseModal);
+    document.getElementById('btnCloseModal').addEventListener('click', closeCaseModal);
+    document.getElementById('btnBackList').addEventListener('click', showCaseList);
+    document.getElementById('caseModal').addEventListener('click', e => {
+        if (e.target.id === 'caseModal') closeCaseModal();
+    });
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape') {
+            if (document.getElementById('savedModal').classList.contains('open')) closeSavedModal();
+            else if (document.getElementById('learnModal').classList.contains('open')) closeLearnModal();
+            else if (document.getElementById('caseModal').classList.contains('open')) closeCaseModal();
+        }
+    });
+
+    renderCaseList();
+
+    const LEARN_CATALOG = [
+        { category: 'Block & Object Storage', keys: ['ebs', 's3', 'glacier'] },
+        { category: 'File Storage (Managed)', keys: ['efs', 'fsx_lustre', 'fsx_windows', 'fsx_ontap', 'fsx_openzfs'] },
+        { category: 'Hybrid — Storage Gateway', keys: ['s3_file_gateway', 'fsx_file_gateway', 'volume_gateway', 'tape_gateway'] },
+        { category: 'Edge & On-Premises AWS', keys: ['outposts', 'snowcone', 'snowball', 'snowmobile'] },
+        { category: 'Transfer, Migrasi & Perlindungan', keys: ['datasync', 'transfer_family', 'mgn', 'aws_backup', 'cloudendure'] }
+    ];
+
+    const LEARN_DETAILS = {
+        ebs: {
+            useCase: 'Menyediakan disk block berlatensi rendah yang ditempelkan langsung ke Amazon EC2—seperti hard drive virtual untuk satu instance atau cluster kecil.',
+            when: [
+                'Database (Oracle, PostgreSQL, SQL Server) di EC2',
+                'Boot volume dan root disk instance',
+                'Aplikasi yang butuh IOPS/throughput dapat diprovision (gp3, io2)',
+                'Stateful app yang tidak cocok di object atau NFS share'
+            ],
+            examples: [
+                {
+                    company: 'PT Bank Nusantara Digital',
+                    conditions: 'Core banking di EC2, transaksi real-time, butuh latency &lt; 1 ms dan IOPS tinggi untuk OLTP. Data harus persisten terpisah dari lifecycle instance.',
+                    fit: 'Cocok memakai Amazon EBS (io2/gp3) per database—bukan EFS atau S3 untuk layer transaksional.'
+                },
+                {
+                    company: 'Startup fintech (umum)',
+                    conditions: 'Satu EC2 menjalankan API + PostgreSQL; tidak ada kebutuhan file share ke banyak server.',
+                    fit: 'Volume EBS sebagai data directory database adalah pola standar.'
+                }
+            ]
+        },
+        s3: {
+            useCase: 'Object storage skala hampir tak terbatas untuk aplikasi modern, backup, static assets, data lake, dan analytics—akses via API/SDK.',
+            when: [
+                'Microservices menyimpan file/blob via S3 API',
+                'Data lake, log, clickstream, backup online',
+                'Konten statis (gambar, video, dokumen) dengan CDN',
+                'Lifecycle ke IA/Glacier untuk optimasi biaya'
+            ],
+            examples: [
+                {
+                    company: 'PT DataMart Marketplace',
+                    conditions: 'E-commerce cloud-native, 200 TB+ gambar produk & log analitik, akses via SDK bukan mount drive.',
+                    fit: 'Amazon S3 + Intelligent-Tiering/Lifecycle—skala tanpa provision kapasitas manual.'
+                },
+                {
+                    company: 'PT CloudNative SaaS Indonesia',
+                    conditions: 'Upload user disimpan sebagai objek; metadata di DB terpisah.',
+                    fit: 'S3 untuk blob storage; EFS hanya jika butuh POSIX share antar pod.'
+                }
+            ]
+        },
+        glacier: {
+            useCase: 'Tier arsip murah untuk data jarang diakses dengan retensi tahunan—biasanya via S3 Lifecycle, bukan storage operasional harian.',
+            when: [
+                'Compliance retensi 5–10+ tahun',
+                'Backup/arsip yang jarang di-restore',
+                'Mengganti tape library biaya tinggi',
+                'Prioritas biaya per GB, bukan IOPS'
+            ],
+            examples: [
+                {
+                    company: 'PT Arsip Regulasi Indonesia',
+                    conditions: '5 PB dokumen kontrak & audit, akses hampir tidak pernah, regulasi OJK retensi 10 tahun.',
+                    fit: 'S3 Glacier Deep Archive via lifecycle—bukan EBS atau EFS untuk arsip massal.'
+                }
+            ]
+        },
+        efs: {
+            useCase: 'File system NFS shared yang elastis, Multi-AZ, untuk banyak EC2/container Linux mengakses folder yang sama.',
+            when: [
+                'Kubernetes/ECS mount volume NFS bersama',
+                'Content tree yang di-share banyak web server Linux',
+                'Skala kapasitas otomatis tanpa resize manual',
+                'Tidak butuh Windows SMB'
+            ],
+            examples: [
+                {
+                    company: 'PT CloudNative SaaS Indonesia',
+                    conditions: 'Puluhan pod di banyak AZ mount config & upload folder yang sama via NFS.',
+                    fit: 'Amazon EFS General Purpose—bukan EBS per pod atau SMB Windows.'
+                }
+            ]
+        },
+        fsx_lustre: {
+            useCase: 'File system POSIX throughput sangat tinggi untuk HPC, genomics, rendering, dan ML training paralel.',
+            when: [
+                'Ratusan node baca/tulis dataset sama paralel',
+                'Throughput GB/s+ lebih penting dari IOPS random kecil',
+                'Workflow sudah POSIX/Lustre di on-prem',
+                'Integrasi dataset dari S3 (data repository)'
+            ],
+            examples: [
+                {
+                    company: 'PT BioCompute Riset Nusantara',
+                    conditions: '200+ node simulasi protein & ML training, dataset 500 TB scratch space, POSIX wajib.',
+                    fit: 'Amazon FSx for Lustre—bukan EFS (tidak untuk HPC ekstrem) atau EBS (tidak shared parallel).'
+                }
+            ]
+        },
+        fsx_windows: {
+            useCase: 'File server Windows native (SMB) terkelola dengan Active Directory, DFS, dan VSS backup.',
+            when: [
+                'Home drive & departmental share Windows',
+                'Aplikasi .NET/SQL membutuhkan UNC path SMB',
+                'Integrasi AD on-prem atau AWS Managed Microsoft AD',
+                'Semua user di cloud VPC (tanpa gateway cabang)'
+            ],
+            examples: [
+                {
+                    company: 'Korporat Windows (cloud-only)',
+                    conditions: 'Migrasi 50 TB file server ke AWS, semua user VPN ke VPC, SMB + AD.',
+                    fit: 'FSx for Windows File Server Multi-AZ di cloud.'
+                }
+            ]
+        },
+        fsx_ontap: {
+            useCase: 'NetApp ONTAP terkelola di AWS—iSCSI block + NFS/SMB file, snapshot, cloning, SnapMirror DR.',
+            when: [
+                'Sudah standar NetApp di data center',
+                'Butuh multi-protokol dalam satu platform',
+                'Enterprise snapshot & replication ke region lain',
+                'Migrasi SAN/NAS NetApp ke cloud'
+            ],
+            examples: [
+                {
+                    company: 'Perusahaan asuransi enterprise',
+                    conditions: 'ONTAP on-prem 10 tahun, aplikasi campuran iSCSI DB + SMB dokumen klaim.',
+                    fit: 'FSx for ONTAP mempertahankan skill & fitur ONTAP di AWS.'
+                }
+            ]
+        },
+        fsx_openzfs: {
+            useCase: 'OpenZFS terkelola—migrasi NAS ZFS ke AWS dengan snapshot & protokol yang sama.',
+            when: [
+                'Storage saat ini OpenZFS on-premises',
+                'Tim ops sudah paham zfs snapshot/clone',
+                'Minim refactor workflow post-migrasi',
+                'Butuh NFS/SMB export dari ZFS'
+            ],
+            examples: [
+                {
+                    company: 'Studio animasi / media',
+                    conditions: '150 TB di ZFS lokal, pipeline render pakai snapshot harian, ingin lift ke AWS.',
+                    fit: 'Amazon FSx for OpenZFS—bukan EFS generik.'
+                }
+            ]
+        },
+        s3_file_gateway: {
+            useCase: 'Aplikasi on-premises pakai SMB/NFS; data authoritative disimpan sebagai objek di S3 dengan cache lokal.',
+            when: [
+                'Legacy app hanya baca folder lokal',
+                'Ingin backend durable di S3 (data lake, backup)',
+                'Hybrid: kantor + cloud object',
+                'Working set kecil, arsip besar di cloud'
+            ],
+            examples: [
+                {
+                    company: 'Perusahaan asuransi (klaim legacy)',
+                    conditions: 'Aplikasi klaim di DC hanya SMB, data harus di cloud untuk DR, user butuh latency lokal via cache.',
+                    fit: 'Amazon S3 File Gateway—SMB/NFS ke bucket S3.'
+                }
+            ]
+        },
+        fsx_file_gateway: {
+            useCase: 'Cabang/pabrik akses SMB cepat ke file share authoritative di FSx for Windows di cloud.',
+            when: [
+                'Banyak site on-prem dengan user Windows',
+                'File master di cloud FSx Windows',
+                'Latency SMB lokal &lt; 5 ms via cache',
+                'Tidak refactor ERP ke S3 API'
+            ],
+            examples: [
+                {
+                    company: 'PT Manufaktur Maju Indonesia',
+                    conditions: '8 pabrik, 2000 user ERP Windows, share di cloud, butuh SMB cepat di lantai produksi.',
+                    fit: 'FSx for Windows + FSx File Gateway per site.'
+                }
+            ]
+        },
+        volume_gateway: {
+            useCase: 'Volume iSCSI on-premises dengan snapshot backup ke Amazon EBS di cloud.',
+            when: [
+                'Aplikasi SAN/iSCSI existing',
+                'DR point-in-time ke EBS',
+                'Cached atau stored volume mode',
+                'Tidak siap pindah ke object storage'
+            ],
+            examples: [
+                {
+                    company: 'Pabrik dengan SCADA on-prem',
+                    conditions: 'Server histori SCADA pakai iSCSI lokal, butuh snapshot harian ke AWS untuk DR.',
+                    fit: 'Volume Gateway stored/cached → snapshot EBS.'
+                }
+            ]
+        },
+        tape_gateway: {
+            useCase: 'Virtual tape library (VTL) di cloud menggantikan physical tape untuk software backup existing.',
+            when: [
+                'Backup Veritas/Veeam/NetBackup ke tape',
+                'Ingin hilangkan robot tape fisik',
+                'Retensi compliance ala tape',
+                'Backend S3/Glacier'
+            ],
+            examples: [
+                {
+                    company: 'Bank dengan proses backup tape',
+                    conditions: 'Software backup 15 tahun ke LTO tape, auditor minta offsite; ingin tetap interface VTL.',
+                    fit: 'Tape Gateway—backup software tidak berubah, tape virtual di S3/Glacier.'
+                }
+            ]
+        },
+        outposts: {
+            useCase: 'Rack/server AWS di gedung perusahaan—API & layanan AWS sama, data tetap di lokasi fisik Anda.',
+            when: [
+                'Data residency wajib di negara/lokasi tertentu',
+                'Latensi ultra-rendah ke sistem di gedung',
+                'Regulasi kesehatan/pertahanan/setempat',
+                'Hybrid konsisten dengan region AWS'
+            ],
+            examples: [
+                {
+                    company: 'RS Medika Indonesia',
+                    conditions: 'Rekam medis tidak boleh keluar gedung RS, butuh EC2/RDS API AWS di rumah sakit.',
+                    fit: 'AWS Outposts di basement RS—bukan hanya S3 sync ke cloud.'
+                }
+            ]
+        },
+        snowcone: {
+            useCase: 'Perangkat ~2 kg rugged untuk edge: kumpul data & compute ringan di lokasi tanpa DC.',
+            when: [
+                'Site tanpa internet berminggu-minggu',
+                'Kapal, rig, kendaraan, pos militer',
+                'Preprocessing sebelum upload ke region',
+                'Kapasitas data terbatas (TB kecil)'
+            ],
+            examples: [
+                {
+                    company: 'Survei kelautan / energi offshore',
+                    conditions: 'Kapal 3 minggu offline, kumpul sonar + ML inferensi ringan, upload saat sandar.',
+                    fit: 'AWS Snowcone—bukan Snowmobile untuk volume kecil mobile.'
+                }
+            ]
+        },
+        snowball: {
+            useCase: 'Perangkat rugged TB–PB: migrasi bulk offline atau edge compute (Storage/Compute Optimized).',
+            when: [
+                'Migrasi puluhan TB dengan bandwidth terbatas',
+                'Edge ML inference offline',
+                'Lebih besar dari Snowcone, lebih kecil dari Snowmobile',
+                'Beberapa trip device ke/dari AWS'
+            ],
+            examples: [
+                {
+                    company: 'Universitas riset',
+                    conditions: '80 TB data observatorium, koneksi kampus 500 Mbps, selesaikan dalam 2 minggu.',
+                    fit: 'Snowball Edge Storage Optimized—lebih praktis dari transfer online panjang.'
+                }
+            ]
+        },
+        snowmobile: {
+            useCase: 'Truk kontainer 45 kaki untuk memindahkan puluhan PB–exabyte dari data center.',
+            when: [
+                'Puluhan PB+ migrasi one-time',
+                'Transfer online akan memakan tahun',
+                'Whole datacenter exit',
+                'Proyek logistik skala ekstrem'
+            ],
+            examples: [
+                {
+                    company: 'PT Migas GeoSurvey Energy',
+                    conditions: '45 PB data seismik, dedicated 1 Gbps tidak feasible untuk timeline proyek.',
+                    fit: 'AWS Snowmobile—satu-satunya opsi realistis untuk volume & deadline.'
+                }
+            ]
+        },
+        datasync: {
+            useCase: 'Transfer/sinkronisasi data online terjadwal antara NFS/SMB on-prem dan S3/EFS/FSx.',
+            when: [
+                'Copy file berkala, bukan migrasi VM utuh',
+                'NAS kantor → cloud storage',
+                'Replikasi bucket antar region/account',
+                'Otomasi bandwidth & verifikasi'
+            ],
+            examples: [
+                {
+                    company: 'Jaringan retail 500 toko',
+                    conditions: 'Setiap malam 2 TB penjualan dari NAS toko ke S3 pusat, server toko tetap.',
+                    fit: 'AWS DataSync task terjadwal—bukan MGN (itu untuk server).'
+                }
+            ]
+        },
+        transfer_family: {
+            useCase: 'SFTP/FTPS/FTP fully managed langsung ke S3 atau EFS—tanpa server FTP sendiri.',
+            when: [
+                'Mitra wajib protokol SFTP standar',
+                'B2B dokumen (customs, bank, supply chain)',
+                'Tidak mau kelola hardening FTP server',
+                'Audit upload per user/partner'
+            ],
+            examples: [
+                {
+                    company: 'PT Logistik Mitra Nusantara',
+                    conditions: '180 vendor upload dokumen bea cukai via SFTP, compliance audit trail.',
+                    fit: 'AWS Transfer Family ke S3 prefix per vendor.'
+                }
+            ]
+        },
+        mgn: {
+            useCase: 'Replikasi kontinu server (fisik/VM) ke staging AWS, cutover otomatis ke EC2—lift-and-shift.',
+            when: [
+                'Migrasi ratusan VM VMware/Hyper-V',
+                'Minim refactor aplikasi',
+                'Wave cutover terjadwal',
+                'Storage pasca-migrasi = EBS per instance'
+            ],
+            examples: [
+                {
+                    company: 'PT Asuransi Migrasi Teknologi',
+                    conditions: '320 server Windows/Linux, 6 bulan timeline, replikasi kontinu tanpa ubah app.',
+                    fit: 'AWS MGN—bukan DataSync (file saja) atau Snow (bulk offline).'
+                }
+            ]
+        },
+        aws_backup: {
+            useCase: 'Backup policy terpusat untuk EBS, RDS, DynamoDB, EFS, dll.—multi-account via Organizations.',
+            when: [
+                'Standarisasi backup semua tim AWS',
+                'Retensi & compliance terdokumentasi',
+                'Cross-region backup copy',
+                'Bukan DR failover menit (itu CloudEndure)'
+            ],
+            examples: [
+                {
+                    company: 'Perusahaan pembayaran multi-produk',
+                    conditions: 'RDS + EBS + DynamoDB di 20 akun AWS, auditor minta backup plan tunggal 7 tahun.',
+                    fit: 'AWS Backup vault & plans—melengkapi EBS/RDS native snapshot.'
+                }
+            ]
+        },
+        cloudendure: {
+            useCase: 'Disaster recovery kontinu: replikasi mesin ke staging murah, launch cepat saat bencana (RTO menit).',
+            when: [
+                'RTO &lt; 15–30 menit wajib',
+                'Replikasi OS + app + data real-time',
+                'Failover ke EC2 di region DR',
+                'Lebih dari backup harian biasa'
+            ],
+            examples: [
+                {
+                    company: 'Platform trading / payment gateway',
+                    conditions: 'Regulator minta pulih &lt; 15 menit jika DC Jakarta lumpuh, replikasi ke Singapore.',
+                    fit: 'CloudEndure DR—AWS Backup saja tidak cukup untuk RTO menit.'
+                }
+            ]
+        }
+    };
+
+    function renderLearnList() {
+        const container = document.getElementById('learnList');
+        let html = '';
+        LEARN_CATALOG.forEach(cat => {
+            html += `<div class="learn-category">${cat.category}</div>`;
+            cat.keys.forEach(key => {
+                const svc = SERVICES[key];
+                const detail = LEARN_DETAILS[key];
+                if (!svc) return;
+                html += `
+                    <div class="case-item learn-item" data-learn-key="${key}" role="button" tabindex="0">
+                        <div>
+                            <div class="case-name">${svc.name}</div>
+                            <div class="case-sector">${detail ? detail.useCase.substring(0, 90) + '…' : svc.summary}</div>
+                        </div>
+                        <span class="case-storage-badge learn-storage-badge">${svc.short}</span>
+                        <span class="arrow">→</span>
+                    </div>
+                `;
+            });
+        });
+        container.innerHTML = html;
+        container.querySelectorAll('.learn-item').forEach(el => {
+            const open = () => showLearnDetail(el.getAttribute('data-learn-key'));
+            el.addEventListener('click', open);
+            el.addEventListener('keydown', e => {
+                if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); }
+            });
+        });
+    }
+
+    function showLearnList() {
+        document.getElementById('learn-list-view').style.display = 'block';
+        document.getElementById('learn-detail-view').style.display = 'none';
+        document.getElementById('btnBackLearnList').style.display = 'none';
+        document.getElementById('learnModalTitle').textContent = 'Learn AWS Storage Service';
+        document.getElementById('learnModalSub').textContent = 'Klik layanan untuk use case & contoh perusahaan';
+    }
+
+    function showLearnDetail(serviceKey) {
+        const svc = SERVICES[serviceKey];
+        const detail = LEARN_DETAILS[serviceKey];
+        if (!svc || !detail) return;
+
+        document.getElementById('learn-list-view').style.display = 'none';
+        document.getElementById('learn-detail-view').style.display = 'block';
+        document.getElementById('btnBackLearnList').style.display = 'inline-block';
+        document.getElementById('learnModalTitle').textContent = svc.short;
+        document.getElementById('learnModalSub').textContent = svc.name;
+
+        document.getElementById('learnDetailHero').innerHTML = `
+            <h3>${svc.name}</h3>
+            <p>${svc.summary}</p>
+        `;
+        document.getElementById('learnUseCase').textContent = detail.useCase;
+        document.getElementById('learnWhenList').innerHTML =
+            detail.when.map(w => `<li>${w}</li>`).join('');
+        document.getElementById('learnExamples').innerHTML = detail.examples.map(ex => `
+            <div class="example-case-card">
+                <strong>${ex.company}</strong>
+                <p class="cond"><strong>Kondisi:</strong> ${ex.conditions}</p>
+                <p class="fit"><strong>→ Cocok memakai ${svc.short}:</strong> ${ex.fit}</p>
+            </div>
+        `).join('');
+
+        document.querySelector('#learnModal .modal-body').scrollTop = 0;
+    }
+
+    function openLearnModal() {
+        const modal = document.getElementById('learnModal');
+        modal.classList.add('open');
+        modal.setAttribute('aria-hidden', 'false');
+        document.body.style.overflow = 'hidden';
+        showLearnList();
+    }
+
+    function closeLearnModal() {
+        const modal = document.getElementById('learnModal');
+        modal.classList.remove('open');
+        modal.setAttribute('aria-hidden', 'true');
+        if (!document.getElementById('caseModal').classList.contains('open') &&
+            !document.getElementById('savedModal').classList.contains('open')) {
+            document.body.style.overflow = '';
+        }
+        showLearnList();
+    }
+
+    document.getElementById('btnOpenLearn').addEventListener('click', openLearnModal);
+    document.getElementById('btnCloseLearnModal').addEventListener('click', closeLearnModal);
+    document.getElementById('btnBackLearnList').addEventListener('click', showLearnList);
+    document.getElementById('learnModal').addEventListener('click', e => {
+        if (e.target.id === 'learnModal') closeLearnModal();
+    });
+
+    renderLearnList();
+</script>
+
+</body>
+</html>
