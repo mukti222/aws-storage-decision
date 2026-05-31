@@ -1500,13 +1500,13 @@
 
     const STORAGE_KEY = 'aws_storage_decision_maker_v1';
     const COMPANIES_JSON_FILE = 'companies.json';
-    const CLOUD_COMPANIES_GET = '/.netlify/functions/companies';
-    const CLOUD_COMPANIES_SAVE = '/.netlify/functions/save-companies';
+    const CLOUD_COMPANIES_API = '/.netlify/functions/companies';
 
     let appStore = { companies: [], lastActiveId: null };
     let companiesJsonLoaded = false;
     let cloudSyncOk = null;
     let storageMode = 'local';
+    let lastCloudError = null;
 
     function loadStoreLocal() {
         try {
@@ -1577,10 +1577,11 @@
     }
 
     async function fetchCompaniesFromCloud() {
-        const res = await fetch(CLOUD_COMPANIES_GET + '?t=' + Date.now(), { cache: 'no-store' });
-        if (!res.ok) throw new Error('cloud GET failed');
-        const data = await res.json();
-        if (data.ok === false) throw new Error(data.error || 'cloud error');
+        const res = await fetch(CLOUD_COMPANIES_API + '?t=' + Date.now(), { cache: 'no-store' });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || data.ok === false) {
+            throw new Error(data.error || 'cloud GET failed (' + res.status + ')');
+        }
         return {
             companies: Array.isArray(data.companies) ? data.companies : [],
             lastActiveId: data.lastActiveId || null
@@ -1588,18 +1589,22 @@
     }
 
     async function saveCompaniesToCloud(store) {
-        if (location.protocol === 'file:') return false;
+        if (location.protocol === 'file:') {
+            return { ok: false, error: 'file:// tidak mendukung cloud' };
+        }
         try {
-            const res = await fetch(CLOUD_COMPANIES_SAVE, {
+            const res = await fetch(CLOUD_COMPANIES_API, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(toCompaniesJsonPayload(store))
             });
-            if (!res.ok) return false;
-            const data = await res.json();
-            return !!(data && data.ok);
-        } catch {
-            return false;
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok || data.ok === false) {
+                return { ok: false, error: data.error || 'HTTP ' + res.status };
+            }
+            return { ok: true };
+        } catch (e) {
+            return { ok: false, error: e.message || 'Network error' };
         }
     }
 
@@ -1637,24 +1642,21 @@
         return appStore;
     }
 
-    function persistStore(store) {
+    async function persistStore(store) {
         appStore = store;
         persistStoreLocal(store);
         if (location.protocol === 'file:') {
             cloudSyncOk = false;
+            lastCloudError = null;
             updateSyncStatus();
-            return;
+            return false;
         }
-        saveCompaniesToCloud(store).then(ok => {
-            if (ok) {
-                cloudSyncOk = true;
-                storageMode = 'cloud';
-            } else {
-                cloudSyncOk = false;
-            }
-            updateSyncStatus();
-        });
+        const result = await saveCompaniesToCloud(store);
+        cloudSyncOk = result.ok;
+        lastCloudError = result.error || null;
+        if (result.ok) storageMode = 'cloud';
         updateSyncStatus();
+        return result.ok;
     }
 
     function updateSyncStatus() {
@@ -1667,22 +1669,29 @@
                 '<strong>Mode file lokal</strong> · ' + n + ' perusahaan di browser. Deploy ke Netlify untuk sync HP A &amp; HP B.';
             return;
         }
-        if (storageMode === 'cloud' && cloudSyncOk !== false) {
+        if (storageMode === 'cloud' && cloudSyncOk === true) {
             el.className = 'sync-status ok';
             el.innerHTML =
                 '<strong>Cloud Netlify</strong> · ' + n + ' perusahaan · <strong>HP A &amp; HP B</strong> buka URL yang sama = list sama.';
+            return;
+        }
+        if (cloudSyncOk === false && lastCloudError) {
+            el.className = 'sync-status warn';
+            el.innerHTML =
+                '<strong>Gagal simpan ke cloud</strong> · ' + n + ' perusahaan hanya di browser ini. ' +
+                'Error: <code>' + String(lastCloudError).replace(/</g, '') + '</code>';
             return;
         }
         if (cloudSyncOk === false && location.hostname.includes('netlify')) {
             el.className = 'sync-status warn';
             el.innerHTML =
                 '<strong>Cloud belum aktif</strong> · ' + n + ' perusahaan di browser. ' +
-                'Tunggu deploy selesai, cek tab <strong>Functions</strong> di Netlify (companies, save-companies).';
+                'Cek tab <strong>Functions</strong> → harus ada <code>companies</code> (deploy terbaru).';
             return;
         }
         el.className = 'sync-status warn';
         el.innerHTML =
-            '<strong>Browser / companies.json</strong> · ' + n + ' perusahaan. Cloud: pastikan deploy dari Git dengan folder <code>netlify/functions</code>.';
+            '<strong>Browser / companies.json</strong> · ' + n + ' perusahaan.';
     }
 
     function downloadCompaniesJson() {
@@ -1715,7 +1724,7 @@
                     companies: data.companies,
                     lastActiveId: data.lastActiveId || null
                 };
-                persistStore(store);
+                await persistStore(store);
                 renderSavedList();
                 alert('Import berhasil: ' + store.companies.length + ' perusahaan.');
             } catch {
@@ -1760,7 +1769,7 @@
         }
     }
 
-    function saveAnalysis(entryData) {
+    async function saveAnalysis(entryData) {
         const store = mergeStores(loadStoreLocal(), appStore);
         const entry = {
             id: entryData.id,
@@ -1776,7 +1785,7 @@
         else store.companies.unshift(entry);
         store.companies.sort((a, b) => new Date(b.savedAt) - new Date(a.savedAt));
         store.lastActiveId = entry.id;
-        persistStore(store);
+        await persistStore(store);
     }
 
     function resolvePrimaryKey(profile, serviceScores) {
@@ -2095,7 +2104,7 @@
         }).slice(0, 4);
     }
 
-    function renderResult() {
+    async function renderResult() {
         const unanswered = QUESTIONS.filter(q => !document.querySelector(`input[name="${q.id}"]:checked`));
         const err = document.getElementById('error-msg');
         if (unanswered.length > 0) {
@@ -2117,7 +2126,7 @@
 
         displayResults(profile, primaryKey, signals, serviceScores, companyLabel, true);
 
-        saveAnalysis({
+        await saveAnalysis({
             id: makeEntryId(companyName),
             companyName: storedName,
             answers,
