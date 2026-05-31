@@ -899,7 +899,7 @@
     <div class="modal-header">
         <div>
             <h2 id="savedModalTitle">List perusahaan anda</h2>
-            <p class="sub" id="savedModalSub">Deploy Netlify: cukup <strong>index.html</strong> + <strong>companies.json</strong>. Simpan otomatis di browser; file JSON untuk data awal / sinkron manual.</p>
+            <p class="sub" id="savedModalSub">Data disimpan di <strong>cloud Netlify</strong> — HP A &amp; HP B (URL sama) melihat list yang sama. Cadangan: unduh/import <strong>companies.json</strong>.</p>
             <p id="sync-status" class="sync-status ok"></p>
         </div>
         <button type="button" class="btn-close-modal" id="btnCloseSavedModal" title="Tutup">×</button>
@@ -1500,9 +1500,13 @@
 
     const STORAGE_KEY = 'aws_storage_decision_maker_v1';
     const COMPANIES_JSON_FILE = 'companies.json';
+    const CLOUD_COMPANIES_GET = '/.netlify/functions/companies';
+    const CLOUD_COMPANIES_SAVE = '/.netlify/functions/save-companies';
 
     let appStore = { companies: [], lastActiveId: null };
     let companiesJsonLoaded = false;
+    let cloudSyncOk = null;
+    let storageMode = 'local';
 
     function loadStoreLocal() {
         try {
@@ -1572,20 +1576,63 @@
         };
     }
 
+    async function fetchCompaniesFromCloud() {
+        const res = await fetch(CLOUD_COMPANIES_GET + '?t=' + Date.now(), { cache: 'no-store' });
+        if (!res.ok) throw new Error('cloud GET failed');
+        const data = await res.json();
+        if (data.ok === false) throw new Error(data.error || 'cloud error');
+        return {
+            companies: Array.isArray(data.companies) ? data.companies : [],
+            lastActiveId: data.lastActiveId || null
+        };
+    }
+
+    async function saveCompaniesToCloud(store) {
+        if (location.protocol === 'file:') return false;
+        try {
+            const res = await fetch(CLOUD_COMPANIES_SAVE, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(toCompaniesJsonPayload(store))
+            });
+            if (!res.ok) return false;
+            const data = await res.json();
+            return !!(data && data.ok);
+        } catch {
+            return false;
+        }
+    }
+
+    async function loadRemoteStore() {
+        if (location.protocol === 'file:') {
+            storageMode = 'local';
+            return { companies: [], lastActiveId: null };
+        }
+        try {
+            const cloud = await fetchCompaniesFromCloud();
+            storageMode = 'cloud';
+            cloudSyncOk = true;
+            companiesJsonLoaded = false;
+            return cloud;
+        } catch {
+            cloudSyncOk = false;
+        }
+        try {
+            const fromJson = await fetchCompaniesJsonFile();
+            storageMode = 'json';
+            companiesJsonLoaded = true;
+            return fromJson;
+        } catch {
+            storageMode = 'local';
+            companiesJsonLoaded = false;
+            return { companies: [], lastActiveId: null };
+        }
+    }
+
     async function refreshAppStore() {
         const local = loadStoreLocal();
-        let fromJson = { companies: [], lastActiveId: null };
-        if (location.protocol === 'file:') {
-            companiesJsonLoaded = false;
-        } else {
-            try {
-                fromJson = await fetchCompaniesJsonFile();
-                companiesJsonLoaded = true;
-            } catch {
-                companiesJsonLoaded = false;
-            }
-        }
-        appStore = mergeStores(local, fromJson);
+        const remote = await loadRemoteStore();
+        appStore = mergeStores(local, remote);
         persistStoreLocal(appStore);
         return appStore;
     }
@@ -1593,6 +1640,20 @@
     function persistStore(store) {
         appStore = store;
         persistStoreLocal(store);
+        if (location.protocol === 'file:') {
+            cloudSyncOk = false;
+            updateSyncStatus();
+            return;
+        }
+        saveCompaniesToCloud(store).then(ok => {
+            if (ok) {
+                cloudSyncOk = true;
+                storageMode = 'cloud';
+            } else {
+                cloudSyncOk = false;
+            }
+            updateSyncStatus();
+        });
         updateSyncStatus();
     }
 
@@ -1603,19 +1664,25 @@
         if (location.protocol === 'file:') {
             el.className = 'sync-status warn';
             el.innerHTML =
-                '<strong>Mode file lokal</strong> · ' + n + ' perusahaan di browser. ' +
-                'Deploy ke Netlify (index.html + companies.json) agar file JSON ikut terbaca.';
+                '<strong>Mode file lokal</strong> · ' + n + ' perusahaan di browser. Deploy ke Netlify untuk sync HP A &amp; HP B.';
             return;
         }
-        el.className = 'sync-status ok';
-        let msg = '<strong>Netlify / static</strong> · ' + n + ' perusahaan tersimpan di browser (reload tetap ada).';
-        if (companiesJsonLoaded) {
-            msg += ' File <strong>companies.json</strong> ikut dibaca saat buka situs.';
-        } else {
-            msg += ' Upload <strong>companies.json</strong> ke folder deploy yang sama dengan index.html.';
+        if (storageMode === 'cloud' && cloudSyncOk !== false) {
+            el.className = 'sync-status ok';
+            el.innerHTML =
+                '<strong>Cloud Netlify</strong> · ' + n + ' perusahaan · <strong>HP A &amp; HP B</strong> buka URL yang sama = list sama.';
+            return;
         }
-        msg += ' Sinkron antar HP: <strong>Unduh companies.json</strong> → ganti file di Netlify → deploy ulang.';
-        el.innerHTML = msg;
+        if (cloudSyncOk === false && location.hostname.includes('netlify')) {
+            el.className = 'sync-status warn';
+            el.innerHTML =
+                '<strong>Cloud belum aktif</strong> · ' + n + ' perusahaan di browser. ' +
+                'Tunggu deploy selesai, cek tab <strong>Functions</strong> di Netlify (companies, save-companies).';
+            return;
+        }
+        el.className = 'sync-status warn';
+        el.innerHTML =
+            '<strong>Browser / companies.json</strong> · ' + n + ' perusahaan. Cloud: pastikan deploy dari Git dengan folder <code>netlify/functions</code>.';
     }
 
     function downloadCompaniesJson() {
@@ -1649,7 +1716,6 @@
                     lastActiveId: data.lastActiveId || null
                 };
                 persistStore(store);
-                updateSyncStatus();
                 renderSavedList();
                 alert('Import berhasil: ' + store.companies.length + ' perusahaan.');
             } catch {
@@ -1695,11 +1761,7 @@
     }
 
     function saveAnalysis(entryData) {
-        refreshAppStore();
-        const store = {
-            companies: [...appStore.companies],
-            lastActiveId: appStore.lastActiveId
-        };
+        const store = mergeStores(loadStoreLocal(), appStore);
         const entry = {
             id: entryData.id,
             companyName: entryData.companyName,
@@ -1712,9 +1774,9 @@
         const idx = store.companies.findIndex(c => c.id === entry.id);
         if (idx >= 0) store.companies[idx] = entry;
         else store.companies.unshift(entry);
+        store.companies.sort((a, b) => new Date(b.savedAt) - new Date(a.savedAt));
         store.lastActiveId = entry.id;
         persistStore(store);
-        updateSyncStatus();
     }
 
     function resolvePrimaryKey(profile, serviceScores) {
