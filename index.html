@@ -1713,7 +1713,7 @@
 
     function importBackupJson(file) {
         const reader = new FileReader();
-        reader.onload = () => {
+        reader.onload = async () => {
             try {
                 const data = JSON.parse(reader.result);
                 if (!Array.isArray(data.companies)) {
