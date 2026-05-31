@@ -1619,8 +1619,9 @@
             cloudSyncOk = true;
             companiesJsonLoaded = false;
             return cloud;
-        } catch {
+        } catch (e) {
             cloudSyncOk = false;
+            lastCloudError = e.message || 'Gagal hubung cloud';
         }
         try {
             const fromJson = await fetchCompaniesJsonFile();
@@ -1684,9 +1685,18 @@
         }
         if (cloudSyncOk === false && location.hostname.includes('netlify')) {
             el.className = 'sync-status warn';
-            el.innerHTML =
-                '<strong>Cloud belum aktif</strong> · ' + n + ' perusahaan di browser. ' +
-                'Cek tab <strong>Functions</strong> → harus ada <code>companies</code> (deploy terbaru).';
+            let msg =
+                '<strong>Cloud belum aktif</strong> · ' + n + ' perusahaan di browser ini.';
+            if (lastCloudError) {
+                msg += '<br>Error: <code>' + String(lastCloudError).replace(/</g, '') + '</code>';
+            }
+            msg +=
+                '<br><br><strong>Agar hijau &amp; sync HP A/B (sekali setup):</strong><br>' +
+                '1. Daftar gratis <a href="https://console.upstash.com/" target="_blank" rel="noopener">Upstash</a> → buat database Redis.<br>' +
+                '2. Copy <strong>UPSTASH_REDIS_REST_URL</strong> dan <strong>UPSTASH_REDIS_REST_TOKEN</strong>.<br>' +
+                '3. Netlify → Site → <strong>Environment variables</strong> → tambah kedua nilai itu.<br>' +
+                '4. <strong>Deploys</strong> → Trigger deploy → buka situs lagi.';
+            el.innerHTML = msg;
             return;
         }
         el.className = 'sync-status warn';
